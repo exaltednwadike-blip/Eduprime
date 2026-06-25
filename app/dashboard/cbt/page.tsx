@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ToastContext";
 
 type CbtQuestion = {
   id: number;
@@ -38,6 +39,7 @@ export default function CbtPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const level = localStorage.getItem("eduprimeLevel");
@@ -84,11 +86,13 @@ export default function CbtPage() {
 
     if (error) {
       setFetchError("Failed to load questions");
+      showToast({ type: 'error', title: 'Failed to load', message: 'Unable to load questions. Please try again later.' });
       return;
     }
 
     if (!data || data.length === 0) {
       setFetchError("No questions available for this course yet");
+      showToast({ type: 'info', title: 'No questions', message: 'No questions available for this course yet.' });
       return;
     }
 
@@ -150,27 +154,12 @@ export default function CbtPage() {
   const seconds = timeLeft % 60;
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
-      <header className="border-b border-white/10 bg-[#0f172a] px-6 py-4 sm:px-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-            <span className="text-white">Edu</span>
-            <span className="text-[#f59e0b]">Prime</span>
-          </div>
-          <a
-            href="#start"
-            className="rounded-full bg-[#f59e0b] px-5 py-2 text-sm font-semibold text-[#0f172a] transition hover:bg-orange-400"
-          >
-            Get Started
-          </a>
-        </div>
-      </header>
-
+    <div className="min-h-screen">
       <main className="mx-auto max-w-6xl px-6 py-10 sm:px-8">
         {stage === "setup" && (
-          <section className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)] sm:p-10">
+          <section className="rounded-3xl p-6 sm:p-10">
             <div className="space-y-4">
-              <h1 className="text-3xl font-semibold text-white sm:text-4xl">CBT Simulator</h1>
+              <h1 className="text-3xl font-semibold">CBT Simulator</h1>
               <p className="text-base leading-7 text-slate-300 sm:text-lg">
                 Choose your course and exam length, then start your timed practice.
               </p>
@@ -182,7 +171,7 @@ export default function CbtPage() {
                 <select
                   value={selectedCourse}
                   onChange={(event) => setSelectedCourse(event.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white focus:border-[#f59e0b] focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/30"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white"
                 >
                   {courses.map((course) => (
                     <option key={course} value={course} className="bg-[#0f172a] text-white">
@@ -200,7 +189,7 @@ export default function CbtPage() {
                       key={count}
                       type="button"
                       onClick={() => setSelectedCount(count)}
-                      className={`rounded-full px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/50 ${
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                         selectedCount === count
                           ? "bg-[#f59e0b] text-[#0f172a]"
                           : "border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
@@ -217,29 +206,22 @@ export default function CbtPage() {
               type="button"
               onClick={startExam}
               disabled={loadingQuestions}
-              className="mt-8 inline-flex items-center justify-center rounded-full bg-[#f59e0b] px-7 py-3 text-sm font-semibold text-[#0f172a] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-8 inline-flex items-center justify-center rounded-full bg-[#f59e0b] px-7 py-3 text-sm font-semibold text-[#0f172a]"
             >
               {loadingQuestions ? "Loading questions..." : "Start Exam"}
             </button>
 
-            {loadingQuestions && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-slate-300">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-[#f59e0b]" />
-                Fetching exam questions...
-              </div>
-            )}
+            {loadingQuestions && <div className="mt-4 text-sm text-slate-300">Fetching exam questions...</div>}
 
-            {fetchError && !loadingQuestions && (
-              <p className="mt-4 text-sm text-rose-400">{fetchError}</p>
-            )}
+            {/* Errors are shown via toasts */}
           </section>
         )}
 
         {stage === "exam" && (
-          <section className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)] sm:p-10">
+          <section className="rounded-3xl p-6 sm:p-10">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-3xl font-semibold text-white sm:text-4xl">Exam in Progress</h1>
+                <h1 className="text-3xl font-semibold">Exam in Progress</h1>
                 <p className="text-sm text-slate-400">Course: {selectedCourse}</p>
               </div>
               <div className="rounded-3xl bg-white/5 px-4 py-3 text-lg font-semibold text-[#f59e0b] sm:px-6">
@@ -282,7 +264,7 @@ export default function CbtPage() {
               <button
                 type="button"
                 onClick={nextQuestion}
-                className="mt-8 inline-flex items-center justify-center rounded-full bg-[#f59e0b] px-6 py-3 text-sm font-semibold text-[#0f172a] transition hover:bg-orange-400"
+                className="mt-8 inline-flex items-center justify-center rounded-full bg-[#f59e0b] px-6 py-3 text-sm font-semibold text-[#0f172a]"
               >
                 {currentIndex + 1 >= examQuestions.length ? "Finish Exam" : "Next Question"}
               </button>
@@ -291,20 +273,16 @@ export default function CbtPage() {
         )}
 
         {stage === "results" && (
-          <section className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)] sm:p-10">
+          <section className="rounded-3xl p-6 sm:p-10">
             <div className="space-y-4">
-              <h1 className="text-3xl font-semibold text-white sm:text-4xl">Exam Results</h1>
+              <h1 className="text-3xl font-semibold">Exam Results</h1>
               <p className="text-base leading-7 text-slate-300 sm:text-lg">
                 You scored {score} out of {examQuestions.length}.
               </p>
               <p className="text-xl font-semibold text-[#f59e0b]">{resultMessage}</p>
             </div>
 
-            <button
-              type="button"
-              onClick={resetExam}
-              className="mt-8 inline-flex items-center justify-center rounded-full bg-[#f59e0b] px-7 py-3 text-sm font-semibold text-[#0f172a] transition hover:bg-orange-400"
-            >
+            <button type="button" onClick={resetExam} className="mt-8 inline-flex items-center justify-center rounded-full bg-[#f59e0b] px-7 py-3 text-sm font-semibold text-[#0f172a]">
               Try Again
             </button>
           </section>

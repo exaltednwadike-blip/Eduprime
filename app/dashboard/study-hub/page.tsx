@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ToastContext";
 
 type Question = {
   id: number;
@@ -32,6 +33,8 @@ export default function StudyHubPage() {
     setSavedLevel(level);
   }, [router]);
 
+  const { showToast } = useToast();
+
   useEffect(() => {
     const fetchQuestions = async () => {
       setLoading(true);
@@ -42,6 +45,7 @@ export default function StudyHubPage() {
       if (fetchError || !data) {
         setError(true);
         setQuestions([]);
+        showToast({ type: "error", title: "Failed to load", message: "Unable to load questions. Please try again later." });
       } else {
         setQuestions(data);
       }
@@ -50,7 +54,7 @@ export default function StudyHubPage() {
     };
 
     fetchQuestions();
-  }, []);
+  }, [showToast]);
 
   const filters = useMemo(() => {
     const courseCodes = Array.from(new Set(questions.map((question) => question.course_code)));
@@ -82,26 +86,11 @@ export default function StudyHubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
-      <header className="border-b border-white/10 bg-[#0f172a] px-6 py-4 sm:px-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-            <span className="text-white">Edu</span>
-            <span className="text-[#f59e0b]">Prime</span>
-          </div>
-          <a
-            href="#questions"
-            className="rounded-full bg-[#f59e0b] px-5 py-2 text-sm font-semibold text-[#0f172a] transition hover:bg-orange-400"
-          >
-            Get Started
-          </a>
-        </div>
-      </header>
-
+    <div className="min-h-screen">
       <main className="mx-auto max-w-6xl px-6 py-10 sm:px-8">
-        <section className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)] sm:p-10">
+        <section className="rounded-3xl p-6 sm:p-10">
           <div className="max-w-3xl space-y-4">
-            <h1 className="text-3xl font-semibold text-white sm:text-4xl">Study Hub</h1>
+            <h1 className="text-3xl font-semibold">Study Hub</h1>
             <p className="text-sm text-slate-400">{savedLevel ? `Studying as: ${savedLevel}` : ""}</p>
             <p className="text-base leading-7 text-slate-300 sm:text-lg">
               Search past questions by course code - College of Medicine, UNEC.
@@ -118,7 +107,7 @@ export default function StudyHubPage() {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="e.g. ANA 201 or Neuroanatomy"
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#f59e0b] focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/30"
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500"
             />
           </div>
 
@@ -130,7 +119,7 @@ export default function StudyHubPage() {
                   key={filter}
                   type="button"
                   onClick={() => handleFilterClick(filter)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/50 ${
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus:outline-none ${
                     isActive
                       ? "border-transparent bg-[#f59e0b] text-[#0f172a]"
                       : "border-white/20 bg-transparent text-slate-200 hover:border-[#f59e0b] hover:bg-white/10"
@@ -145,17 +134,13 @@ export default function StudyHubPage() {
 
         <section id="questions" className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {loading && (
-            <div className="col-span-full rounded-3xl border border-white/10 bg-white/5 p-8 text-center text-slate-300">
-              Loading questions...
-            </div>
+            <div className="col-span-full rounded-3xl p-8 text-center text-slate-300">Loading questions...</div>
           )}
           {error && !loading && (
-            <div className="col-span-full rounded-3xl border border-white/10 bg-white/5 p-8 text-center text-slate-300">
-              Failed to load questions
-            </div>
+            <div className="col-span-full rounded-3xl p-8 text-center text-slate-300">Failed to load questions</div>
           )}
           {!loading && !error && filteredQuestions.map((question) => (
-            <article key={question.id} className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.25)]">
+            <article key={question.id} className="rounded-3xl p-5">
               <div className="flex items-center justify-between gap-3">
                 <span className="rounded-full bg-[#f59e0b] px-3 py-1 text-xs font-semibold uppercase text-[#0f172a]">
                   {question.course_code}
@@ -163,25 +148,23 @@ export default function StudyHubPage() {
                 <span className="text-sm text-slate-400">{question.year}</span>
               </div>
               <p className="mt-3 text-sm uppercase tracking-[0.2em] text-[#f59e0b]">{question.topic}</p>
-              <h2 className="mt-4 text-lg font-semibold text-white">{question.question}</h2>
+              <h2 className="mt-4 text-lg font-semibold">{question.question}</h2>
               {visibleAnswers.includes(question.id) && (
-                <div className="mt-4 rounded-2xl bg-slate-950/80 p-4 text-sm leading-6 text-slate-200">
-                  <span className="font-semibold text-slate-100">Answer:</span> {question.answer}
+                <div className="mt-4 rounded-2xl p-4 text-sm leading-6 text-slate-200">
+                  <span className="font-semibold">Answer:</span> {question.answer}
                 </div>
               )}
               <button
                 type="button"
                 onClick={() => toggleAnswer(question.id)}
-                className="mt-5 inline-flex items-center justify-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+                className="mt-5 inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold"
               >
                 {visibleAnswers.includes(question.id) ? "Hide Answer" : "Show Answer"}
               </button>
             </article>
           ))}
           {!loading && !error && filteredQuestions.length === 0 && (
-            <div className="col-span-full rounded-3xl border border-white/10 bg-white/5 p-8 text-center text-slate-300">
-              No questions match your search. Try a different course code or topic.
-            </div>
+            <div className="col-span-full rounded-3xl p-8 text-center text-slate-300">No questions match your search.</div>
           )}
         </section>
       </main>

@@ -12,7 +12,7 @@ export default function OnboardingPage() {
   const handleContinue = () => {
     if (!selectedLevel) return;
     localStorage.setItem("eduprimeLevel", selectedLevel);
-    router.push("/study-hub");
+    router.push("/dashboard");
   };
 
   return (
