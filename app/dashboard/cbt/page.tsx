@@ -198,9 +198,10 @@ export default function CbtPage() {
     setTimeLeft(0);
   };
 
-  const score = answers.reduce((total, selected, index) => {
-    return examQuestions[index]?.correct_option === selected ? total + 1 : total;
-  }, 0);
+ const score = answers.reduce<number>((total, selected, index) => {
+  if (selected === null || selected === undefined) return total;
+  return examQuestions[index]?.correct_option === selected ? total + 1 : total;
+}, 0);
 
   const percentage = examQuestions.length
     ? Math.round((score / examQuestions.length) * 100)

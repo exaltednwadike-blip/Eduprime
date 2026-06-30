@@ -191,9 +191,9 @@ export default function AdminBulkUploadPage() {
 
       try {
         const [subjectsRes, categoriesRes, topicsRes] = await Promise.all([
-          supabase.from<Subject>("subjects").select("id, name").order("name", { ascending: true }),
-          supabase.from<Category>("categories").select("id, subject_id, name").order("name", { ascending: true }),
-          supabase.from<Topic>("topics").select("id, category_id, name").order("name", { ascending: true }),
+          supabase.from("subjects").select("id, name").order("name", { ascending: true }),
+          supabase.from("categories").select("id, subject_id, name").order("name", { ascending: true }),
+          supabase.from("topics").select("id, category_id, name").order("name", { ascending: true }),
         ]);
 
         if (subjectsRes.error) throw new Error(subjectsRes.error.message);
