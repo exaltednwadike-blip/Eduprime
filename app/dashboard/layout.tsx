@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { ToastProvider } from "@/components/ToastContext";
@@ -54,7 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   useEffect(() => {
-    document.documentElement.style.background = theme === "dark" ? "#0f172a" : "#f8fafc";
+    document.documentElement.style.background = theme === "dark" ? "#052e16" : "#f8fafc";
     localStorage.setItem("eduprimeTheme", theme);
   }, [theme]);
 
@@ -79,9 +79,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!mounted) return null;
 
-  const textColor = theme === "dark" ? "text-white" : "text-[#0f172a]";
-  const bgColor = theme === "dark" ? "bg-[#0f172a]" : "bg-[#f8fafc]";
-  const panelBg = theme === "dark" ? "bg-[#111827]" : "bg-white";
+  const textColor = theme === "dark" ? "text-white" : "text-[#052e16]";
+  const bgColor = theme === "dark" ? "bg-[#052e16]" : "bg-[#f8fafc]";
+  const panelBg = theme === "dark" ? "bg-[#064e23]" : "bg-white";
 
   return (
     <ThemeContext.Provider value={value}>
@@ -90,13 +90,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex">
           <aside
             className={`sticky top-0 z-20 h-screen flex-shrink-0 transition-all duration-200 ${collapsed ? "w-16" : "w-64"}`}
-            style={{ background: "#0f172a" }}
+            style={{ background: "#052e16" }}
           >
             <div className="flex h-16 items-center justify-between px-4">
               <div className={`flex items-center gap-2 ${collapsed ? "justify-center w-full" : ""}`}>
                 <div className="text-2xl font-bold tracking-tight">
                   <span className="text-white">Edu</span>
-                  {!collapsed && <span className="text-[#f59e0b]">Prime</span>}
+                  {!collapsed && <span className="text-[#16a34a]">Prime</span>}
                 </div>
               </div>
               <button
@@ -117,7 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     key={item.key}
                     href={item.href}
                     className={`group mb-2 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/5 ${
-                      active ? "bg-[#f59e0b] text-[#0f172a]" : "text-slate-200"
+                      active ? "bg-[#16a34a] text-[#052e16]" : "text-slate-200"
                     }`}
                   >
                     <span className={`inline-flex items-center justify-center`}>
@@ -131,7 +131,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link
                   href="/admin"
                   className={`group mt-4 flex items-center gap-3 rounded-xl border border-white/10 px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/5 ${
-                    pathname === "/admin" ? "bg-[#f59e0b] text-[#0f172a]" : "text-slate-200"
+                    pathname === "/admin" ? "bg-[#16a34a] text-[#052e16]" : "text-slate-200"
                   }`}
                 >
                   <ShieldAlert />
@@ -171,8 +171,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Menu size={18} />
                 </button>
                 <div className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                  <span className={theme === "dark" ? "text-white" : "text-[#0f172a]"}>Edu</span>
-                  <span className="text-[#f59e0b]">Prime</span>
+                  <span className={theme === "dark" ? "text-white" : "text-[#052e16]"}>Edu</span>
+                  <span className="text-[#16a34a]">Prime</span>
                 </div>
               </div>
 
@@ -197,3 +197,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </ThemeContext.Provider>
   );
 }
+
+
+

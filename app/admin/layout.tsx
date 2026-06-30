@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -30,8 +30,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (status === "checking") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f172a] text-white">
-        <div className="rounded-3xl border border-white/10 bg-[#111827] px-8 py-6 text-center text-lg font-semibold">
+      <div className="min-h-screen flex items-center justify-center bg-[#052e16] text-white">
+        <div className="rounded-3xl border border-white/10 bg-[#064e23] px-8 py-6 text-center text-lg font-semibold">
           Checking admin access...
         </div>
       </div>
@@ -44,3 +44,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return <AdminShell userEmail={userEmail!}>{children}</AdminShell>;
 }
+
+
+

@@ -162,7 +162,7 @@ export default function QuestionsManager({ initialSubjects, initialQuestions }: 
           <h1 className="text-3xl font-semibold">Manage Questions</h1>
           <p className="mt-2 text-slate-400">Create, edit, and remove questions across subjects.</p>
         </div>
-        <button onClick={() => setShowForm((open) => !open)} className="inline-flex items-center gap-2 rounded-full bg-[#f59e0b] px-4 py-2 font-semibold text-[#0f172a]">
+        <button onClick={() => setShowForm((open) => !open)} className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 font-semibold text-[#052e16]">
           <Plus size={16} />
           {showForm ? "Close" : "Add Question"}
         </button>
@@ -240,7 +240,7 @@ export default function QuestionsManager({ initialSubjects, initialQuestions }: 
             </label>
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
-            <button type="submit" className="rounded-full bg-[#f59e0b] px-5 py-2 font-semibold text-[#0f172a]">{editing ? "Save Question" : "Add Question"}</button>
+            <button type="submit" className="rounded-full bg-[#16a34a] px-5 py-2 font-semibold text-[#052e16]">{editing ? "Save Question" : "Add Question"}</button>
             <button type="button" onClick={resetForm} className="rounded-full bg-white/5 px-5 py-2 text-slate-200">Cancel</button>
           </div>
         </form>
@@ -273,7 +273,7 @@ export default function QuestionsManager({ initialSubjects, initialQuestions }: 
                 <th className="px-6 py-4 font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10 bg-[#0f172a]">
+            <tbody className="divide-y divide-white/10 bg-[#052e16]">
               {filteredQuestions.map((question) => {
                 const subjectName = subjects.find((subject) => subject.id === question.subject_id)?.name ?? "Unknown";
                 return (

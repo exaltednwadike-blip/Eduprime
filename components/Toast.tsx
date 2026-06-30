@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect } from "react";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
@@ -25,7 +25,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: 
       case "error":
         return <AlertCircle className="text-rose-500" />;
       case "warning":
-        return <AlertTriangle className="text-amber-400" />;
+        return <AlertTriangle className="text-emerald-400" />;
       default:
         return <Info className="text-sky-400" />;
     }
@@ -56,3 +56,6 @@ export function ToastContainer({ toasts, onDismiss }: { toasts: ToastItem[]; onD
     </div>
   );
 }
+
+
+

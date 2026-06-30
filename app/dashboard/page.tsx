@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -17,28 +17,28 @@ const tips = [
   "Teach what you learn. Explaining a concept to someone else cements your understanding.",
   "Practice past questions under timed conditions to simulate real exam pressure.",
   "Break study sessions into 25-minute focused blocks with 5-minute breaks (Pomodoro technique).",
-  "Review your mistakes after every CBT — wrong answers teach more than right ones.",
+  "Review your mistakes after every CBT â€” wrong answers teach more than right ones.",
   "The night before an exam, sleep is more valuable than last-minute cramming.",
-  "Connect new information to what you already know — associations make recall easier.",
-  "In anatomy, always learn structure before function — it makes physiology make sense.",
+  "Connect new information to what you already know â€” associations make recall easier.",
+  "In anatomy, always learn structure before function â€” it makes physiology make sense.",
   "Draw diagrams. Visual representation of pathways and structures boosts recall significantly.",
-  "For biochemistry pathways, focus on the rate-limiting enzyme first — examiners love those.",
-  "Group muscles by their nerve supply — it makes clinical questions much easier.",
-  "When studying physiology, always ask 'what happens if this fails?' — that's how diseases begin.",
-  "Read past questions before reading your textbook — it tells you what actually gets examined.",
-  "Study in a group once a week — other people catch what you missed.",
+  "For biochemistry pathways, focus on the rate-limiting enzyme first â€” examiners love those.",
+  "Group muscles by their nerve supply â€” it makes clinical questions much easier.",
+  "When studying physiology, always ask 'what happens if this fails?' â€” that's how diseases begin.",
+  "Read past questions before reading your textbook â€” it tells you what actually gets examined.",
+  "Study in a group once a week â€” other people catch what you missed.",
   "Mnemonics are powerful but only if you create them yourself.",
   "Don't highlight everything. If everything is important, nothing is.",
   "The best time to review a topic is 24 hours after you first studied it.",
-  "Drink water consistently during study sessions — dehydration reduces concentration.",
+  "Drink water consistently during study sessions â€” dehydration reduces concentration.",
   "For MCQs, eliminate obviously wrong options first before guessing.",
-  "Your brain consolidates memory during sleep — pulling all-nighters before exams backfires.",
-  "In physiology, master the action potential — it appears in neurology, cardiology, and muscle physiology.",
-  "Biochemistry and physiology overlap heavily — studying them together saves time.",
-  "For anatomy practicals, handle the prosection confidently — examiners notice hesitation.",
+  "Your brain consolidates memory during sleep â€” pulling all-nighters before exams backfires.",
+  "In physiology, master the action potential â€” it appears in neurology, cardiology, and muscle physiology.",
+  "Biochemistry and physiology overlap heavily â€” studying them together saves time.",
+  "For anatomy practicals, handle the prosection confidently â€” examiners notice hesitation.",
   "Set a specific goal before each study session: 'I will finish the brachial plexus today.'",
-  "Use the EduPrime CBT simulator weekly — consistency beats cramming every time.",
-  "Every organ has a blood supply, nerve supply, and lymphatic drainage — learn all three.",
+  "Use the EduPrime CBT simulator weekly â€” consistency beats cramming every time.",
+  "Every organ has a blood supply, nerve supply, and lymphatic drainage â€” learn all three.",
   "When you feel overwhelmed, study the smallest possible unit until confidence returns.",
 ];
 
@@ -104,21 +104,21 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-white/10 bg-[#111827] p-6 sm:p-10">
+      <section className="rounded-3xl border border-white/10 bg-[#064e23] p-6 sm:p-10">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <p className="text-sm uppercase tracking-[0.24em] text-[#f59e0b]">Good to see you again</p>
-            <h1 className="mt-3 text-4xl font-semibold">Welcome back, {firstName} 👋</h1>
+            <p className="text-sm uppercase tracking-[0.24em] text-[#16a34a]">Good to see you again</p>
+            <h1 className="mt-3 text-4xl font-semibold">Welcome back, {firstName} ðŸ‘‹</h1>
             <p className="mt-4 max-w-xl text-slate-400">Keep your momentum going with today's study plan and course progress overview.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <div className="rounded-3xl bg-[#0b1220] px-4 py-3 text-sm text-slate-300">
-              <div className="font-semibold text-[#f59e0b]">Level</div>
+            <div className="rounded-3xl bg-[#065f2c] px-4 py-3 text-sm text-slate-300">
+              <div className="font-semibold text-[#16a34a]">Level</div>
               <div className="mt-2 text-xl font-semibold text-white">{level || "Not set"}</div>
             </div>
-            <div className="rounded-3xl bg-[#0b1220] px-4 py-3 text-sm text-slate-300">
-              <div className="font-semibold text-[#f59e0b]">Today</div>
+            <div className="rounded-3xl bg-[#065f2c] px-4 py-3 text-sm text-slate-300">
+              <div className="font-semibold text-[#16a34a]">Today</div>
               <div className="mt-2 text-xl font-semibold text-white">{today}</div>
             </div>
           </div>
@@ -126,31 +126,31 @@ export default function DashboardHome() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+        <div className="rounded-3xl bg-[#064e23] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
           <div className="flex items-center justify-between text-slate-400">
             <span>Questions Answered</span>
-            <ClipboardList className="h-6 w-6 text-[#f59e0b]" />
+            <ClipboardList className="h-6 w-6 text-[#16a34a]" />
           </div>
           <div className="mt-6 text-4xl font-semibold">0</div>
         </div>
-        <div className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+        <div className="rounded-3xl bg-[#064e23] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
           <div className="flex items-center justify-between text-slate-400">
             <span>CBT Tests Taken</span>
-            <Monitor className="h-6 w-6 text-[#f59e0b]" />
+            <Monitor className="h-6 w-6 text-[#16a34a]" />
           </div>
           <div className="mt-6 text-4xl font-semibold">0</div>
         </div>
-        <div className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+        <div className="rounded-3xl bg-[#064e23] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
           <div className="flex items-center justify-between text-slate-400">
             <span>Average Score</span>
-            <Trophy className="h-6 w-6 text-[#f59e0b]" />
+            <Trophy className="h-6 w-6 text-[#16a34a]" />
           </div>
           <div className="mt-6 text-4xl font-semibold">0%</div>
         </div>
-        <div className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+        <div className="rounded-3xl bg-[#064e23] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
           <div className="flex items-center justify-between text-slate-400">
             <span>Tokens Earned</span>
-            <Sparkles className="h-6 w-6 text-[#f59e0b]" />
+            <Sparkles className="h-6 w-6 text-[#16a34a]" />
           </div>
           <div className="mt-6 text-4xl font-semibold">0</div>
         </div>
@@ -159,19 +159,19 @@ export default function DashboardHome() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="grid gap-4">
           {courses.map((course) => (
-            <div key={course.id} className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+            <div key={course.id} className="rounded-3xl bg-[#064e23] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-[#f59e0b]">{course.course_code}</p>
+                  <p className="text-sm uppercase tracking-[0.24em] text-[#16a34a]">{course.course_code}</p>
                   <h2 className="mt-2 text-2xl font-semibold">{course.course_name}</h2>
                 </div>
-                <Link href="/dashboard/study-hub" className="inline-flex items-center rounded-full bg-[#f59e0b] px-4 py-2 text-sm font-semibold text-[#0f172a] transition hover:bg-orange-400">
+                <Link href="/dashboard/study-hub" className="inline-flex items-center rounded-full bg-[#16a34a] px-4 py-2 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e]">
                   Study Now
                 </Link>
               </div>
 
               <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-0 rounded-full bg-[#f59e0b] transition-all duration-300" />
+                <div className="h-full w-0 rounded-full bg-[#16a34a] transition-all duration-300" />
               </div>
               <div className="mt-3 flex items-center justify-between text-sm text-slate-400">
                 <span>0% progress</span>
@@ -181,13 +181,13 @@ export default function DashboardHome() {
           ))}
         </div>
 
-        <div className="rounded-3xl bg-[#111827] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+        <div className="rounded-3xl bg-[#064e23] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
           <div className="flex items-center gap-3">
-            <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0b1220] text-[#f59e0b]">
+            <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#065f2c] text-[#16a34a]">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm uppercase tracking-[0.24em] text-[#f59e0b]">Tip of the Day</p>
+              <p className="text-sm uppercase tracking-[0.24em] text-[#16a34a]">Tip of the Day</p>
               <h3 className="mt-2 text-2xl font-semibold">Study smarter today</h3>
             </div>
           </div>
@@ -197,3 +197,6 @@ export default function DashboardHome() {
     </div>
   );
 }
+
+
+

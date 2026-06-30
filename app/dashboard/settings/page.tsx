@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -39,7 +39,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="rounded-3xl p-6 bg-[#111827]">
+      <div className="rounded-3xl p-6 bg-[#064e23]">
         <h1 className="text-2xl font-semibold">Settings</h1>
 
         <section className="mt-6">
@@ -75,9 +75,12 @@ export default function SettingsPage() {
         </section>
 
         <div className="mt-6">
-          <button onClick={signOut} className="rounded-full bg-[#f59e0b] px-5 py-2 font-semibold text-[#0f172a]">Sign Out</button>
+          <button onClick={signOut} className="rounded-full bg-[#16a34a] px-5 py-2 font-semibold text-[#052e16]">Sign Out</button>
         </div>
       </div>
     </div>
   );
 }
+
+
+

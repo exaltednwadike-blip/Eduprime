@@ -73,7 +73,7 @@ export default function SubjectsManager({ initialSubjects }: { initialSubjects: 
           <h1 className="text-3xl font-semibold">Manage Subjects</h1>
           <p className="mt-2 text-slate-400">Add, edit, and remove subjects in EduPrime.</p>
         </div>
-        <button onClick={() => setShowForm((open) => !open)} className="inline-flex items-center gap-2 rounded-full bg-[#f59e0b] px-4 py-2 font-semibold text-[#0f172a]">
+        <button onClick={() => setShowForm((open) => !open)} className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 font-semibold text-[#052e16]">
           <Plus size={16} />
           {showForm ? "Close" : "Add Subject"}
         </button>
@@ -92,7 +92,7 @@ export default function SubjectsManager({ initialSubjects }: { initialSubjects: 
             </label>
           </div>
           <div className="mt-4 flex items-center gap-3">
-            <button type="submit" className="rounded-full bg-[#f59e0b] px-5 py-2 font-semibold text-[#0f172a]">{editing ? "Save Changes" : "Create Subject"}</button>
+            <button type="submit" className="rounded-full bg-[#16a34a] px-5 py-2 font-semibold text-[#052e16]">{editing ? "Save Changes" : "Create Subject"}</button>
             {editing && (
               <button type="button" onClick={() => { setEditing(null); setName(""); setDescription(""); }} className="rounded-full bg-white/5 px-5 py-2 text-slate-200">Cancel</button>
             )}
@@ -107,7 +107,7 @@ export default function SubjectsManager({ initialSubjects }: { initialSubjects: 
               <div>
                 <h2 className="text-xl font-semibold">{subject.name}</h2>
                 <p className="mt-1 text-sm text-slate-400">{subject.description}</p>
-                <p className="mt-2 text-sm text-[#f59e0b]">{subject.question_count || 0} questions</p>
+                <p className="mt-2 text-sm text-[#16a34a]">{subject.question_count || 0} questions</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <button onClick={() => handleEdit(subject)} className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200">

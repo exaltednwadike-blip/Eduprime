@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, List, UploadCloud, Menu, ChevronLeft } from "lucide-react";
+import { Home, BookOpen, List, UploadCloud, Menu, ChevronLeft, Layers, Tag } from "lucide-react";
 
 const sidebarItems = [
   { key: "dashboard", label: "Dashboard", href: "/admin", icon: Home },
   { key: "subjects", label: "Subjects", href: "/admin/subjects", icon: BookOpen },
+  { key: "categories", label: "Categories", href: "/admin/categories", icon: Layers },
+  { key: "topics", label: "Topics", href: "/admin/topics", icon: Tag },
   { key: "questions", label: "Questions", href: "/admin/questions", icon: List },
   { key: "bulk-upload", label: "Bulk Upload", href: "/admin/bulk-upload", icon: UploadCloud },
 ];
@@ -17,14 +19,19 @@ export function AdminShell({ userEmail, children }: { userEmail: string; childre
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div className="min-h-screen bg-[#052e16] text-white">
       <div className="flex">
-        <aside className={`sticky top-0 z-20 h-screen flex-shrink-0 transition-all duration-200 ${collapsed ? "w-16" : "w-72"}`} style={{ background: "#0f172a" }}>
+        <aside className={`sticky top-0 z-20 h-screen flex-shrink-0 transition-all duration-200 ${collapsed ? "w-16" : "w-72"}`} style={{ background: "#052e16" }}>
           <div className="flex h-16 items-center justify-between px-4">
             <div className={`flex items-center gap-3 ${collapsed ? "justify-center w-full" : ""}`}>
-              <div className="text-2xl font-bold tracking-tight">
-                <span className="text-white">Edu</span>
-                {!collapsed && <span className="text-[#f59e0b]">Prime Admin</span>}
+              <div className="flex items-center gap-3 text-2xl font-bold tracking-tight">
+                <img src="/logo.png" alt="EduPrime logo" className="h-8 w-8 rounded-full object-cover" />
+                {!collapsed && (
+                  <span className="flex items-center gap-1">
+                    <span className="text-white">Edu</span>
+                    <span className="bg-gradient-to-r from-emerald-300 via-emerald-400 to-emerald-500 bg-clip-text text-transparent">Prime Admin</span>
+                  </span>
+                )}
               </div>
             </div>
             <button onClick={() => setCollapsed((c) => !c)} className="inline-flex items-center justify-center rounded-full p-2 text-white/80 hover:bg-white/5">
@@ -41,7 +48,7 @@ export function AdminShell({ userEmail, children }: { userEmail: string; childre
                   key={item.key}
                   href={item.href}
                   className={`group mb-2 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors hover:bg-white/5 ${
-                    active ? "bg-[#f59e0b] text-[#0f172a]" : "text-slate-200"
+                    active ? "bg-[#16a34a] text-[#052e16]" : "text-slate-200"
                   }`}
                 >
                   <Icon />

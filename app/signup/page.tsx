@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -103,18 +103,18 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
-      <header className="border-b border-white/10 bg-[#0f172a] px-6 py-4 sm:px-8">
+    <div className="min-h-screen bg-[#052e16] text-white">
+      <header className="border-b border-white/10 bg-[#052e16] px-6 py-4 sm:px-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-2xl font-bold tracking-tight">
             <span className="text-white">Edu</span>
-            <span className="text-[#f59e0b]">Prime</span>
+            <span className="text-[#16a34a]">Prime</span>
           </div>
         </div>
       </header>
 
       <main className="flex min-h-[calc(100vh-64px)] items-center justify-center px-6 py-12 sm:px-8">
-        <div className="w-full max-w-md rounded-3xl bg-[#111827] p-8 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+        <div className="w-full max-w-md rounded-3xl bg-[#064e23] p-8 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
           <h1 className="text-3xl font-semibold text-white">Create Your Account</h1>
           <p className="mt-2 text-sm text-slate-400">Start your journey with EduPrime.</p>
 
@@ -123,7 +123,7 @@ export default function SignupPage() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={googleLoading}
-              className="w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#0f172a] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70 flex items-center justify-center gap-3"
+              className="w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70 flex items-center justify-center gap-3"
             >
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-lg font-bold">G</span>
               <span>{googleLoading ? 'Continuing...' : 'Continue with Google'}</span>
@@ -142,7 +142,7 @@ export default function SignupPage() {
                 type="text"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#f59e0b] focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/30"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
                 placeholder="Your full name"
               />
             </label>
@@ -153,7 +153,7 @@ export default function SignupPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#f59e0b] focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/30"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
                 placeholder="you@example.com"
               />
             </label>
@@ -164,7 +164,7 @@ export default function SignupPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#f59e0b] focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/30"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
                 placeholder="Enter your password"
               />
             </label>
@@ -175,7 +175,7 @@ export default function SignupPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#f59e0b] focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/30"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
                 placeholder="Confirm your password"
               />
             </label>
@@ -185,7 +185,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-[#f59e0b] px-5 py-3 text-sm font-semibold text-[#0f172a] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-full bg-[#16a34a] px-5 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? "Creating account..." : "Sign Up"}
             </button>
@@ -194,7 +194,7 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-slate-400">
             Already have an account?{' '}
-            <a href="/signin" className="font-semibold text-white hover:text-[#f59e0b]">
+            <a href="/signin" className="font-semibold text-white hover:text-[#16a34a]">
               Sign In
             </a>
           </p>
@@ -203,3 +203,6 @@ export default function SignupPage() {
     </div>
   );
 }
+
+
+

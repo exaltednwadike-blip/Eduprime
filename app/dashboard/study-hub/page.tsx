@@ -1,29 +1,44 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastContext";
 
+type Subject = { id: string; name: string };
+type Category = { id: string; subject_id: string; name: string };
+type Topic = { id: string; category_id: string; name: string };
 type Question = {
-  id: number;
-  course_code: string;
-  year: string;
+  id: string;
   question: string;
   answer: string;
-  topic: string;
+  explanation: string | null;
+  type: string;
+  year: number | null;
 };
 
 export default function StudyHubPage() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<string>("All");
-  const [visibleAnswers, setVisibleAnswers] = useState<number[]>([]);
-  const [savedLevel, setSavedLevel] = useState<string>("");
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<boolean>(false);
+  const { showToast } = useToast();
 
+  const [savedLevel, setSavedLevel] = useState("");
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [visibleAnswers, setVisibleAnswers] = useState<string[]>([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingTopics, setLoadingTopics] = useState(false);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+
+  // Check onboarding
   useEffect(() => {
     const level = localStorage.getItem("eduprimeLevel");
     if (!level) {
@@ -33,140 +48,262 @@ export default function StudyHubPage() {
     setSavedLevel(level);
   }, [router]);
 
-  const { showToast } = useToast();
-
+  // Fetch subjects on load
   useEffect(() => {
-    const fetchQuestions = async () => {
-      setLoading(true);
-      setError(false);
-
-      const { data, error: fetchError } = await supabase.from<Question>("questions").select("*");
-
-      if (fetchError || !data) {
-        setError(true);
-        setQuestions([]);
-        showToast({ type: "error", title: "Failed to load", message: "Unable to load questions. Please try again later." });
+    const fetchSubjects = async () => {
+      setLoadingSubjects(true);
+      const { data, error } = await supabase
+        .from("subjects")
+        .select("id, name")
+        .order("name");
+      if (error) {
+        showToast({ type: "error", title: "Error", message: "Failed to load subjects." });
       } else {
-        setQuestions(data);
+        setSubjects(data || []);
       }
-
-      setLoading(false);
+      setLoadingSubjects(false);
     };
+    fetchSubjects();
+  }, []);
 
+  // Fetch categories when subject selected
+  useEffect(() => {
+    if (!selectedSubject) return;
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      setCategories([]);
+      setTopics([]);
+      setQuestions([]);
+      setSelectedCategory(null);
+      setSelectedTopic(null);
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, subject_id, name")
+        .eq("subject_id", selectedSubject.id)
+        .order("name");
+      if (error) {
+        showToast({ type: "error", title: "Error", message: "Failed to load categories." });
+      } else {
+        setCategories(data || []);
+      }
+      setLoadingCategories(false);
+    };
+    fetchCategories();
+  }, [selectedSubject]);
+
+  // Fetch topics when category selected
+  useEffect(() => {
+    if (!selectedCategory) return;
+    const fetchTopics = async () => {
+      setLoadingTopics(true);
+      setTopics([]);
+      setQuestions([]);
+      setSelectedTopic(null);
+      const { data, error } = await supabase
+        .from("topics")
+        .select("id, category_id, name")
+        .eq("category_id", selectedCategory.id)
+        .order("name");
+      if (error) {
+        showToast({ type: "error", title: "Error", message: "Failed to load topics." });
+      } else {
+        setTopics(data || []);
+      }
+      setLoadingTopics(false);
+    };
+    fetchTopics();
+  }, [selectedCategory]);
+
+  // Fetch questions when topic selected
+  useEffect(() => {
+    if (!selectedTopic) return;
+    const fetchQuestions = async () => {
+      setLoadingQuestions(true);
+      setQuestions([]);
+      const { data, error } = await supabase
+        .from("questions")
+        .select("id, question, answer, explanation, type, year")
+        .eq("topic_id", selectedTopic.id)
+        .order("created_at");
+      if (error) {
+        showToast({ type: "error", title: "Error", message: "Failed to load questions." });
+      } else {
+        setQuestions(data || []);
+      }
+      setLoadingQuestions(false);
+    };
     fetchQuestions();
-  }, [showToast]);
+  }, [selectedTopic]);
 
-  const filters = useMemo(() => {
-    const courseCodes = Array.from(new Set(questions.map((question) => question.course_code)));
-    return ["All", ...courseCodes];
-  }, [questions]);
-
-  const filteredQuestions = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-
-    return questions.filter((item) => {
-      const matchesFilter = selectedFilter === "All" || item.course_code === selectedFilter;
-      const matchesSearch =
-        query === "" ||
-        item.course_code.toLowerCase().includes(query) ||
-        item.topic.toLowerCase().includes(query);
-
-      return matchesFilter && matchesSearch;
-    });
-  }, [questions, searchTerm, selectedFilter]);
-
-  const handleFilterClick = (filter: string) => {
-    setSelectedFilter(filter);
-  };
-
-  const toggleAnswer = (id: number) => {
+  const toggleAnswer = (id: string) => {
     setVisibleAnswers((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
     );
   };
 
+  const filteredQuestions = questions.filter((q) =>
+    searchTerm.trim() === "" ||
+    q.question.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen">
       <main className="mx-auto max-w-6xl px-6 py-10 sm:px-8">
-        <section className="rounded-3xl p-6 sm:p-10">
-          <div className="max-w-3xl space-y-4">
-            <h1 className="text-3xl font-semibold">Study Hub</h1>
-            <p className="text-sm text-slate-400">{savedLevel ? `Studying as: ${savedLevel}` : ""}</p>
-            <p className="text-base leading-7 text-slate-300 sm:text-lg">
-              Search past questions by course code - College of Medicine, UNEC.
-            </p>
-          </div>
 
-          <div className="mt-8 space-y-4 sm:mt-10">
-            <label className="block text-sm font-medium text-slate-300" htmlFor="search">
-              Search by course code or topic
-            </label>
-            <input
-              id="search"
-              type="text"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="e.g. ANA 201 or Neuroanatomy"
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500"
-            />
-          </div>
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-semibold">Study Hub</h1>
+          {savedLevel && (
+            <p className="mt-1 text-sm text-slate-400">Studying as: {savedLevel}</p>
+          )}
+          <p className="mt-2 text-slate-400">
+            College of Medicine, UNEC — browse questions by subject, category and topic.
+          </p>
+        </div>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            {filters.map((filter) => {
-              const isActive = selectedFilter === filter;
-              return (
+        {/* Subject Filter */}
+        <div className="mb-6">
+          <p className="mb-3 text-sm font-medium text-slate-400">Select Subject</p>
+          {loadingSubjects ? (
+            <p className="text-sm text-slate-400">Loading subjects...</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {subjects.map((subject) => (
                 <button
-                  key={filter}
-                  type="button"
-                  onClick={() => handleFilterClick(filter)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus:outline-none ${
-                    isActive
-                      ? "border-transparent bg-[#f59e0b] text-[#0f172a]"
-                      : "border-white/20 bg-transparent text-slate-200 hover:border-[#f59e0b] hover:bg-white/10"
+                  key={subject.id}
+                  onClick={() => setSelectedSubject(subject)}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    selectedSubject?.id === subject.id
+                      ? "border-transparent bg-[#1a5c2a] text-white"
+                      : "border-white/20 bg-transparent text-slate-300 hover:border-[#1a5c2a] hover:bg-white/5"
                   }`}
                 >
-                  {filter}
+                  {subject.name}
                 </button>
-              );
-            })}
-          </div>
-        </section>
+              ))}
+            </div>
+          )}
+        </div>
 
-        <section id="questions" className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {loading && (
-            <div className="col-span-full rounded-3xl p-8 text-center text-slate-300">Loading questions...</div>
-          )}
-          {error && !loading && (
-            <div className="col-span-full rounded-3xl p-8 text-center text-slate-300">Failed to load questions</div>
-          )}
-          {!loading && !error && filteredQuestions.map((question) => (
-            <article key={question.id} className="rounded-3xl p-5">
-              <div className="flex items-center justify-between gap-3">
-                <span className="rounded-full bg-[#f59e0b] px-3 py-1 text-xs font-semibold uppercase text-[#0f172a]">
-                  {question.course_code}
-                </span>
-                <span className="text-sm text-slate-400">{question.year}</span>
+        {/* Category Filter */}
+        {selectedSubject && (
+          <div className="mb-6">
+            <p className="mb-3 text-sm font-medium text-slate-400">Select Category</p>
+            {loadingCategories ? (
+              <p className="text-sm text-slate-400">Loading categories...</p>
+            ) : categories.length === 0 ? (
+              <p className="text-sm text-slate-400">No categories found for this subject yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      selectedCategory?.id === category.id
+                        ? "border-transparent bg-[#1a5c2a] text-white"
+                        : "border-white/20 bg-transparent text-slate-300 hover:border-[#1a5c2a] hover:bg-white/5"
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                ))}
               </div>
-              <p className="mt-3 text-sm uppercase tracking-[0.2em] text-[#f59e0b]">{question.topic}</p>
-              <h2 className="mt-4 text-lg font-semibold">{question.question}</h2>
-              {visibleAnswers.includes(question.id) && (
-                <div className="mt-4 rounded-2xl p-4 text-sm leading-6 text-slate-200">
-                  <span className="font-semibold">Answer:</span> {question.answer}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => toggleAnswer(question.id)}
-                className="mt-5 inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold"
+            )}
+          </div>
+        )}
+
+        {/* Topic Filter */}
+        {selectedCategory && (
+          <div className="mb-6">
+            <p className="mb-3 text-sm font-medium text-slate-400">Select Topic</p>
+            {loadingTopics ? (
+              <p className="text-sm text-slate-400">Loading topics...</p>
+            ) : topics.length === 0 ? (
+              <p className="text-sm text-slate-400">No topics found for this category yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {topics.map((topic) => (
+                  <button
+                    key={topic.id}
+                    onClick={() => setSelectedTopic(topic)}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      selectedTopic?.id === topic.id
+                        ? "border-transparent bg-[#2db54a] text-white"
+                        : "border-white/20 bg-transparent text-slate-300 hover:border-[#2db54a] hover:bg-white/5"
+                    }`}
+                  >
+                    {topic.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+       
+
+        {/* Questions */}
+        {!selectedSubject && (
+          <div className="mt-12 text-center text-slate-400">
+            Select a subject above to start browsing questions.
+          </div>
+        )}
+
+        {selectedTopic && loadingQuestions && (
+          <div className="mt-8 text-center text-slate-400">Loading questions...</div>
+        )}
+
+        {selectedTopic && !loadingQuestions && filteredQuestions.length === 0 && (
+          <div className="mt-8 text-center text-slate-400">
+            No questions found for this topic yet.
+          </div>
+        )}
+
+        {selectedTopic && !loadingQuestions && filteredQuestions.length > 0 && (
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredQuestions.map((question) => (
+              <article
+                key={question.id}
+                className="rounded-3xl border border-white/10 bg-white/5 p-5"
               >
-                {visibleAnswers.includes(question.id) ? "Hide Answer" : "Show Answer"}
-              </button>
-            </article>
-          ))}
-          {!loading && !error && filteredQuestions.length === 0 && (
-            <div className="col-span-full rounded-3xl p-8 text-center text-slate-300">No questions match your search.</div>
-          )}
-        </section>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-full bg-[#1a5c2a] px-3 py-1 text-xs font-semibold uppercase text-white">
+                    {selectedSubject?.name}
+                  </span>
+                  {question.year && (
+                    <span className="text-sm text-slate-400">{question.year}</span>
+                  )}
+                </div>
+                <p className="mt-3 text-xs uppercase tracking-widest text-[#2db54a]">
+                  {selectedTopic.name}
+                </p>
+                <h2 className="mt-4 text-base font-semibold text-white">
+                  {question.question}
+                </h2>
+
+                {visibleAnswers.includes(question.id) && (
+                  <div className="mt-4 rounded-2xl bg-slate-950/80 p-4 text-sm text-slate-200">
+                    <p><span className="font-semibold text-white">Answer:</span> {question.answer}</p>
+                    {question.explanation && (
+                      <p className="mt-2 text-slate-400">
+                        <span className="font-semibold text-slate-300">Explanation:</span> {question.explanation}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => toggleAnswer(question.id)}
+                  className="mt-4 rounded-full bg-[#1a5c2a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2db54a]"
+                >
+                  {visibleAnswers.includes(question.id) ? "Hide Answer" : "Show Answer"}
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
