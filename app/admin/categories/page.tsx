@@ -64,7 +64,7 @@ export default function AdminCategoriesPage() {
     setLoading(true);
     setError(null);
 
-    const { data, error } = await supabase.from<Category>("categories").select("id, subject_id, name").order("name", { ascending: true });
+    const { data, error } = await supabase.from("categories").select("id, subject_id, name").order("name", { ascending: true });
     if (error) {
       setError(error.message);
       setLoading(false);
