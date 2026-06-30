@@ -40,8 +40,8 @@ export default function AdminCategoriesPage() {
 
     try {
       const [subjectRes, categoryRes] = await Promise.all([
-        supabase.from<Subject>("subjects").select("id, name").order("name", { ascending: true }),
-        supabase.from<Category>("categories").select("id, subject_id, name").order("name", { ascending: true }),
+        supabase.from("subjects").select("id, name").order("name", { ascending: true }),
+        supabase.from("categories").select("id, subject_id, name").order("name", { ascending: true }),
       ]);
 
       if (subjectRes.error) throw new Error(subjectRes.error.message);

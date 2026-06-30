@@ -111,10 +111,10 @@ export default function QuestionsManager({ initialSubjects, initialQuestions }: 
   const fetchQuestions = async () => {
     const [questionRes, subjectRes] = await Promise.all([
       supabase
-        .from<Question>("questions")
+        .from("questions")
         .select("id, subject_id, topic, question, type, answer, explanation, option_a, option_b, option_c, option_d, correct_option, year")
         .order("id", { ascending: false }),
-      supabase.from<Subject>("subjects").select("id, name"),
+      supabase.from("subjects").select("id, name"),
     ]);
 
     const subjectMap = new Map(subjectRes.data?.map((subject) => [subject.id, subject.name]));
