@@ -26,7 +26,7 @@ export default function AdminSubjectsPage() {
     setLoading(true);
     setError(null);
 
-    const { data, error } = await supabase.from<Subject>("subjects").select("id, name, description").order("id", { ascending: false });
+    const { data, error } = await supabase.from("subjects").select("id, name, description").order("id", { ascending: false });
     if (error) {
       setError(error.message);
       setLoading(false);

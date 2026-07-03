@@ -86,7 +86,7 @@ export default function AdminTopicsPage() {
     setLoading(true);
     setError(null);
 
-    const { data, error } = await supabase.from<Topic>("topics").select("id, category_id, name").order("name", { ascending: true });
+    const { data, error } = await supabase.from("topics").select("id, category_id, name").order("name", { ascending: true });
     if (error) {
       setError(error.message);
       setLoading(false);

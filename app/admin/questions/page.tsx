@@ -117,9 +117,9 @@ export default function AdminQuestionsPage() {
       setSubjects(subjectsData);
       setCategories(categoriesData);
       setTopics(topicsData);
-      setSelectedSubjectId(subjectsData[0]?.id ?? null);
-      setSelectedCategoryId(categoriesData.find((category) => category.subject_id === subjectsData[0]?.id)?.id ?? null);
-      setSelectedTopicId(topicsData.find((topic) => topic.category_id === categoriesData.find((category) => category.subject_id === subjectsData[0]?.id)?.id ?? -1)?.id ?? null);
+      setSelectedSubjectId(subjectsData[0]?.id || null);
+  setSelectedCategoryId(categoriesData.find((category) => category.subject_id === subjectsData[0]?.id)?.id || null);
+setSelectedTopicId(topicsData.find((topic) => topic.category_id === categoriesData.find((category) => category.subject_id === subjectsData[0]?.id)?.id)?.id || null);
     } catch (err: any) {
       setError(err.message || "Failed to load lookup data.");
     } finally {
@@ -137,7 +137,7 @@ export default function AdminQuestionsPage() {
     setError(null);
 
     const { data, error } = await supabase
-      .from<Question>("questions")
+      .from("questions")
       .select(
         "id, topic_id, question, type, answer, explanation, option_a, option_b, option_c, option_d, correct_option, year"
       )

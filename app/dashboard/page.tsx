@@ -61,12 +61,12 @@ export default function DashboardHome() {
 
   useEffect(() => {
     const fetchCourseData = async () => {
-      const { data: courseData } = await supabase.from<Course>("courses").select("id, course_code, course_name");
+      const { data: courseData } = await supabase.from("courses").select("id, course_code, course_name");
       if (courseData) {
         setCourses(courseData);
       }
 
-      const { data: questionData } = await supabase.from<{ course_code: string }>("questions").select("course_code");
+      const { data: questionData } = await supabase.from("questions").select("course_code");
       if (questionData) {
         const counts: Record<string, number> = {};
         questionData.forEach((question) => {

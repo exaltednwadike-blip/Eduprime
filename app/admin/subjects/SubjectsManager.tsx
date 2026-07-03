@@ -24,7 +24,7 @@ export default function SubjectsManager({ initialSubjects }: { initialSubjects: 
 
   const fetchSubjects = async () => {
     const { data } = await supabase
-      .from<Omit<Subject, "question_count">>("subjects")
+      .from("subjects")
       .select("id, name, description");
     if (data) {
       const questionCounts: Record<number, number> = {};
