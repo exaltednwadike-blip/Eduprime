@@ -3,83 +3,145 @@
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#052e16] text-white">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5 sm:px-8">
-        <div className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <span className="text-white">Edu</span>
-          <span className="text-[#16a34a]">Prime</span>
+      <header className="w-full">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5 sm:px-8">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/logo.png" alt="EduPrime" className="h-10 w-auto" />
+            <span className="sr-only">EduPrime</span>
+          </Link>
+
+          <nav className="flex items-center gap-3">
+            <Link
+              href="/signin"
+              className="rounded-md border border-white/20 px-4 py-2 text-sm font-medium hover:bg-white/5"
+            >
+              Sign In
+            </Link>
+
+            <Link
+              href="/signup"
+              className="ml-2 rounded-md bg-[#2db54a] px-4 py-2 text-sm font-semibold text-[#052e16] shadow-sm hover:brightness-95"
+            >
+              Sign Up
+            </Link>
+          </nav>
         </div>
-        <Link
-          href="/onboarding"
-          className="rounded-full bg-[#16a34a] px-5 py-2 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e]"
-        >
-          Get Started
-        </Link>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col px-6 pb-16 sm:px-8">
-        <section className="flex flex-col items-start justify-center rounded-3xl bg-[#064e23] px-6 py-12 shadow-[0_20px_60px_rgba(15,23,42,0.35)] sm:px-12 sm:py-16">
-          <p className="mb-4 rounded-full bg-white/5 px-4 py-2 text-sm text-[#16a34a]">Nigeria's #1 past question repository</p>
-          <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
-            Study Smarter. Pass Faster.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-            Nigeria's #1 past question repository and CBT simulator for university students.
-          </p>
-          <Link
-            href="/onboarding"
-            className="mt-8 inline-flex rounded-full bg-[#16a34a] px-7 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e]"
-          >
-            Start Studying Free
-          </Link>
+      <main className="mx-auto w-full max-w-6xl px-6 pb-16 sm:px-8">
+        {/* Hero */}
+        <section className="mt-8 rounded-xl bg-[#052e16] px-6 py-12 sm:mt-12 sm:px-10 sm:py-16">
+          <div className="mx-auto max-w-4xl text-center">
+            <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl">
+              Study Smarter. Pass Faster.
+            </h1>
+            <p className="mt-4 text-base text-slate-200 sm:text-lg">
+              Nigeria's #1 past question repository and CBT simulator for College of Medicine students at
+              UNEC
+            </p>
+
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <Link
+                href="/signup"
+                className="inline-flex items-center justify-center rounded-md bg-[#2db54a] px-6 py-3 text-sm font-semibold text-[#052e16] shadow-md"
+              >
+                Get Started Free
+              </Link>
+
+              <Link href="/signin" className="mt-2 text-sm text-slate-200 underline sm:mt-0 sm:ml-4">
+                Sign In
+              </Link>
+            </div>
+          </div>
         </section>
 
-        <section id="features" className="mt-12 grid gap-6 sm:grid-cols-3">
-          <div className="flex min-h-[220px] flex-col justify-between rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.25)]">
+        {/* Features */}
+        <section className="mt-10 grid gap-6 sm:grid-cols-3">
+          <article className="flex flex-col justify-between rounded-lg bg-[#1a5c2a] p-6">
             <div>
-              <h2 className="text-xl font-semibold text-white">Unified Vault</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Browse organized past questions by course code and level, so you can revise fast and effectively.
+              <h3 className="text-lg font-semibold text-white">Study Hub</h3>
+              <p className="mt-3 text-sm text-slate-100">
+                Browse past questions by topic to focus your revision where it matters most.
               </p>
             </div>
-            <Link
-              href="/study-hub"
-              className="mt-6 inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-            >
-              Browse Questions â†’
-            </Link>
+            <div className="mt-6">
+              <Link
+                href="/signup"
+                className="inline-block rounded-md bg-[#2db54a] px-4 py-2 text-sm font-semibold text-[#052e16]"
+              >
+                Browse Questions
+              </Link>
+            </div>
+          </article>
+
+          <article className="flex flex-col justify-between rounded-lg bg-[#1a5c2a] p-6">
+            <div>
+              <h3 className="text-lg font-semibold text-white">CBT Simulator</h3>
+              <p className="mt-3 text-sm text-slate-100">Practice under timed exam conditions and track progress.</p>
+            </div>
+            <div className="mt-6">
+              <Link
+                href="/signup"
+                className="inline-block rounded-md bg-[#2db54a] px-4 py-2 text-sm font-semibold text-[#052e16]"
+              >
+                Start Practicing
+              </Link>
+            </div>
+          </article>
+
+          <article className="flex flex-col justify-between rounded-lg bg-[#1a5c2a] p-6">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Peer Sharing</h3>
+              <p className="mt-3 text-sm text-slate-100">Collaborate and share resources with your classmates.</p>
+            </div>
+            <div className="mt-6">
+              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-slate-200">
+                Coming Soon
+              </span>
+            </div>
+          </article>
+        </section>
+
+        {/* How it works */}
+        <section className="mt-12 rounded-lg bg-white/5 p-6 sm:p-8">
+          <h2 className="text-center text-xl font-semibold text-white">How it works</h2>
+          <div className="mt-6 grid gap-6 sm:grid-cols-3">
+            <div className="flex flex-col items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2db54a] text-sm font-semibold text-[#052e16]">1</div>
+              <h4 className="text-md font-medium text-white">Create your account</h4>
+              <p className="text-sm text-slate-200">Sign up with your university email to get started.</p>
+            </div>
+
+            <div className="flex flex-col items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2db54a] text-sm font-semibold text-[#052e16]">2</div>
+              <h4 className="text-md font-medium text-white">Select your level and subject</h4>
+              <p className="text-sm text-slate-200">Pick your course and year to see targeted past questions.</p>
+            </div>
+
+            <div className="flex flex-col items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2db54a] text-sm font-semibold text-[#052e16]">3</div>
+              <h4 className="text-md font-medium text-white">Study, practice, and pass</h4>
+              <p className="text-sm text-slate-200">Use the Study Hub and CBT simulator to prepare effectively.</p>
+            </div>
           </div>
-          <div className="flex min-h-[220px] flex-col justify-between rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.25)]">
-            <div>
-              <h2 className="text-xl font-semibold text-white">CBT Simulator</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Practice under timed exam conditions with instant scoring and analytics to improve your performance.
-              </p>
-            </div>
+        </section>
+
+        {/* Call to action */}
+        <section className="mt-12 rounded-lg bg-[#052e16] p-6 text-center sm:p-10">
+          <h2 className="text-xl font-semibold text-white">Join hundreds of College of Medicine students already studying smarter</h2>
+          <div className="mt-6 flex justify-center">
             <Link
-              href="/cbt"
-              className="mt-6 inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+              href="/signup"
+              className="inline-block rounded-md bg-[#2db54a] px-6 py-3 text-sm font-semibold text-[#052e16]"
             >
-              Start Exam â†’
+              Create Free Account
             </Link>
-          </div>
-          <div className="flex min-h-[220px] flex-col justify-between rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.25)]">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Peer Sharing</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Upload notes to earn tokens, share with classmates, and build a stronger study community.
-              </p>
-            </div>
-            <span className="mt-6 inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-slate-300">
-              Coming Soon
-            </span>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-white/10 bg-[#052e16] px-6 py-6 text-sm text-slate-400 sm:px-8">
-        <div className="mx-auto max-w-6xl text-center">
-          Â© 2026 EduPrime. Built for Nigerian students.
-        </div>
+      <footer className="mt-12 border-t border-white/10 bg-[#052e16] px-6 py-6 text-center text-sm text-slate-300 sm:px-8">
+        © 2026 EduPrime. Built for Nigerian medical students.
       </footer>
     </div>
   );
