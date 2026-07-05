@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -6,14 +5,13 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code')
 
   if (code) {
-    const { createServerClient } = await import('@supabase/ssr')
-    const supabase = createServerClient(
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: {} as any }
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  return NextResponse.redirect(requestUrl.origin + '/study-hub')
+  return NextResponse.redirect(requestUrl.origin + '/dashboard')
 }
