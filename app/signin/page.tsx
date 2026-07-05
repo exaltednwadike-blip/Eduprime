@@ -39,7 +39,8 @@ export default function SigninPage() {
     }
 
     showToast({ type: "success", title: "Welcome back!", message: "You have signed in successfully." });
-    window.location.href = "/dashboard";
+    router.push("/dashboard");
+    router.refresh();
   };
 
   const handleGoogleSignIn = async () => {
@@ -119,4 +120,20 @@ export default function SigninPage() {
               type="button"
               onClick={handleSignIn}
               disabled={loading}
-              className="w-full rounded-full bg-
+              className="w-full rounded-full bg-[#16a34a] px-5 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e] disabled:opacity-70"
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
+
+            <p className="text-center text-sm text-slate-400">
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="font-semibold text-[#86efac] hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
