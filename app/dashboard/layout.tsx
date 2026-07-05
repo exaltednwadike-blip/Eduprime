@@ -34,6 +34,7 @@ const sidebarItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
   const router = useRouter();
@@ -49,9 +50,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     (async () => {
       const { data } = await supabase.auth.getUser();
-      setUser(data.user || null);
+      if (!data.user) {
+        router.push('/signin');
+        setAuthChecked(true);
+        return;
+      }
+      setUser(data.user);
+      setAuthChecked(true);
     })();
-  }, []);
+  }, [router]);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
+        router.push('/signin');
+      } else if (session) {
+        setUser(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   useEffect(() => {
     document.documentElement.style.background = theme === "dark" ? "#052e16" : "#f8fafc";
