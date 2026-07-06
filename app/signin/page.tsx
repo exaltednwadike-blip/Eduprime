@@ -45,7 +45,7 @@ export default function SigninPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://eduprime.com.ng/dashboard",
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) {

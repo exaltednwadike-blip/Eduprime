@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -7,16 +7,27 @@ export async function GET(request: NextRequest) {
   const next = requestUrl.searchParams.get('next') ?? '/dashboard'
 
   if (code) {
-    try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      await supabase.auth.exchangeCodeForSession(code)
-    } catch (error) {
-      console.error('Auth callback error:', error)
-    }
+    let response = NextResponse.redirect(new URL(next, requestUrl.origin))
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            response = NextResponse.redirect(new URL(next, requestUrl.origin))
+            cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+          },
+        },
+      }
+    )
+
+    await supabase.auth.exchangeCodeForSession(code)
+    return response
   }
 
   return NextResponse.redirect(new URL(next, requestUrl.origin))
