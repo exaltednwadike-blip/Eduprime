@@ -1,0 +1,16 @@
+{
+  "name": "EduPrime",
+  "short_name": "EduPrime",
+  "description": "Study smarter with past questions and CBT practice.",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "240x240",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#052e16",
+  "theme_color": "#16a34a"
+}
