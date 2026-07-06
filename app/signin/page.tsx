@@ -1,13 +1,11 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastContext";
 import Link from "next/link";
 
 export default function SigninPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,8 +37,7 @@ export default function SigninPage() {
     }
 
     showToast({ type: "success", title: "Welcome back!", message: "You have signed in successfully." });
-    router.push("/dashboard");
-    router.refresh();
+    window.location.replace("/dashboard");
   };
 
   const handleGoogleSignIn = async () => {
@@ -48,7 +45,7 @@ export default function SigninPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin + "/auth/callback",
+        redirectTo: "https://eduprime.com.ng/dashboard",
       },
     });
     if (error) {
@@ -73,7 +70,6 @@ export default function SigninPage() {
           <p className="mt-2 text-sm text-slate-400">Sign in to access your study hub.</p>
 
           <div className="mt-8 space-y-4">
-            {/* Google Sign In */}
             <button
               type="button"
               onClick={handleGoogleSignIn}
@@ -90,7 +86,6 @@ export default function SigninPage() {
               <hr className="flex-1 border-white/10" />
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-slate-300">Email</label>
               <input
@@ -102,7 +97,6 @@ export default function SigninPage() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-slate-300">Password</label>
               <input
@@ -115,18 +109,17 @@ export default function SigninPage() {
               />
             </div>
 
-            {/* Sign In Button */}
             <button
               type="button"
               onClick={handleSignIn}
               disabled={loading}
-              className="w-full rounded-full bg-[#16a34a] px-5 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e] disabled:opacity-70"
+              className="w-full rounded-full bg-[#1a5c2a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2db54a] disabled:opacity-70"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
 
             <p className="text-center text-sm text-slate-400">
-              Don&apos;t have an account?{' '}
+              Don&apos;t have an account?{" "}
               <Link href="/signup" className="font-semibold text-[#86efac] hover:underline">
                 Sign up
               </Link>
