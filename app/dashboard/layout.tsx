@@ -111,17 +111,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className={`sticky top-0 z-20 h-screen flex-shrink-0 transition-all duration-200 ${collapsed ? "w-16" : "w-64"}`}
             style={{ background: "#052e16" }}
           >
-            <div className="flex h-16 items-center justify-between px-4">
-              <div className={`flex items-center gap-2 ${collapsed ? "justify-center w-full" : ""}`}>
-                <div className="text-2xl font-bold tracking-tight">
-                  <span className="text-white">Edu</span>
-                  {!collapsed && <span className="text-[#16a34a]">Prime</span>}
+            <div className={`flex h-16 items-center ${collapsed ? "justify-center" : "justify-between"} px-4`}>
+              {!collapsed && (
+                <div className="flex items-center gap-2">
+                  <div className="text-2xl font-bold tracking-tight">
+                    <span className="text-white">Edu</span>
+                    <span className="text-[#16a34a]">Prime</span>
+                  </div>
                 </div>
-              </div>
+              )}
               <button
                 aria-label="Toggle sidebar"
                 onClick={handleToggleSidebar}
-                className="hidden md:inline-flex items-center justify-center rounded-full p-2 text-white/80 hover:bg-white/5"
+                className="inline-flex items-center justify-center rounded-full p-2 text-white/80 hover:bg-white/5"
               >
                 {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
               </button>
@@ -135,11 +137,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Link
                     key={item.key}
                     href={item.href}
-                    className={`group mb-2 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/5 ${
-                      active ? "bg-[#16a34a] text-[#052e16]" : "text-slate-200"
-                    }`}
+                    className={`group mb-2 flex items-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/5 ${
+                      collapsed ? "justify-center" : "gap-3"
+                    } ${active ? "bg-[#16a34a] text-[#052e16]" : "text-slate-200"}`}
                   >
-                    <span className={`inline-flex items-center justify-center`}>
+                    <span className="inline-flex items-center justify-center">
                       <Icon />
                     </span>
                     {!collapsed && <span className="truncate">{item.label}</span>}
@@ -149,9 +151,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {user?.email === ADMIN_EMAIL && (
                 <Link
                   href="/admin"
-                  className={`group mt-4 flex items-center gap-3 rounded-xl border border-white/10 px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/5 ${
-                    pathname === "/admin" ? "bg-[#16a34a] text-[#052e16]" : "text-slate-200"
-                  }`}
+                  className={`group mt-4 flex items-center rounded-xl border border-white/10 px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/5 ${
+                    collapsed ? "justify-center" : "gap-3"
+                  } ${pathname === "/admin" ? "bg-[#16a34a] text-[#052e16]" : "text-slate-200"}`}
                 >
                   <ShieldAlert />
                   {!collapsed && <span className="truncate">Admin Panel</span>}
@@ -159,15 +161,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
             </nav>
 
-            <div className="mt-auto px-4 py-6">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setCollapsed((c) => !c)}
-                  className="inline-flex items-center justify-center rounded-full bg-white/5 p-2 text-white/80"
-                >
-                  <Menu size={16} />
-                </button>
-                {!collapsed && (
+            {!collapsed && (
+              <div className="mt-auto px-4 py-6">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={toggle}
                     className="ml-2 inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2 text-sm"
@@ -175,9 +171,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
                     <span className="text-slate-200">{theme === "dark" ? "Dark" : "Light"}</span>
                   </button>
-                )}
+                </div>
               </div>
-            </div>
+            )}
           </aside>
 
           <div className="flex min-h-screen flex-1 flex-col">

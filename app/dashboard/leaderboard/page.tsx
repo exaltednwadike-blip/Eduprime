@@ -10,7 +10,7 @@ export default function LeaderboardPage() {
           <Trophy />
           <h1 className="text-2xl font-semibold">Leaderboard</h1>
         </div>
-        <div className="mt-6 text-slate-400">Coming Soon â€” See how you rank against other College of Medicine students.</div>
+        <div className="mt-6 text-slate-400">Coming Soon — See how you rank against other students.</div>
       </div>
     </div>
   );

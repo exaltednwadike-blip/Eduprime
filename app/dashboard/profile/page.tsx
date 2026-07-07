@@ -40,15 +40,15 @@ export default function ProfilePage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl bg-white/5 p-4 text-center">
             <div className="text-sm text-slate-400">Questions Answered</div>
-            <div className="mt-2 text-xl font-semibold">â€”</div>
+            <div className="mt-2 text-xl font-semibold">—</div>
           </div>
           <div className="rounded-2xl bg-white/5 p-4 text-center">
             <div className="text-sm text-slate-400">CBT Tests Taken</div>
-            <div className="mt-2 text-xl font-semibold">â€”</div>
+            <div className="mt-2 text-xl font-semibold">—</div>
           </div>
           <div className="rounded-2xl bg-white/5 p-4 text-center">
             <div className="text-sm text-slate-400">Tokens Earned</div>
-            <div className="mt-2 text-xl font-semibold">â€”</div>
+            <div className="mt-2 text-xl font-semibold">—</div>
           </div>
         </div>
       </div>

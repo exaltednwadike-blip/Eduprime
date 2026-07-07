@@ -157,7 +157,7 @@ export default function StudyHubPage() {
             <p className="mt-1 text-sm text-slate-400">Studying as: {savedLevel}</p>
           )}
           <p className="mt-2 text-slate-400">
-            College of Medicine, UNEC — browse questions by subject, category and topic.
+            Browse questions by subject, category and topic.
           </p>
         </div>
 

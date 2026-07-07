@@ -17,28 +17,32 @@ const tips = [
   "Teach what you learn. Explaining a concept to someone else cements your understanding.",
   "Practice past questions under timed conditions to simulate real exam pressure.",
   "Break study sessions into 25-minute focused blocks with 5-minute breaks (Pomodoro technique).",
-  "Review your mistakes after every CBT â€” wrong answers teach more than right ones.",
+  "Spaced repetition is proven to improve long-term memory retention by up to 80%.",
+  "Teach what you learn. Explaining a concept to someone else cements your understanding.",
+  "Practice past questions under timed conditions to simulate real exam pressure.",
+  "Break study sessions into 25-minute focused blocks with 5-minute breaks (Pomodoro technique).",
+  "Review your mistakes after every CBT — wrong answers teach more than right ones.",
   "The night before an exam, sleep is more valuable than last-minute cramming.",
-  "Connect new information to what you already know â€” associations make recall easier.",
-  "In anatomy, always learn structure before function â€” it makes physiology make sense.",
+  "Connect new information to what you already know — associations make recall easier.",
+  "In anatomy, always learn structure before function — it makes physiology make sense.",
   "Draw diagrams. Visual representation of pathways and structures boosts recall significantly.",
-  "For biochemistry pathways, focus on the rate-limiting enzyme first â€” examiners love those.",
-  "Group muscles by their nerve supply â€” it makes clinical questions much easier.",
-  "When studying physiology, always ask 'what happens if this fails?' â€” that's how diseases begin.",
-  "Read past questions before reading your textbook â€” it tells you what actually gets examined.",
-  "Study in a group once a week â€” other people catch what you missed.",
+  "For biochemistry pathways, focus on the rate-limiting enzyme first — examiners love those.",
+  "Group muscles by their nerve supply — it makes clinical questions much easier.",
+  "When studying physiology, always ask 'what happens if this fails?' — that's how diseases begin.",
+  "Read past questions before reading your textbook — it tells you what actually gets examined.",
+  "Study in a group once a week — other people catch what you missed.",
   "Mnemonics are powerful but only if you create them yourself.",
   "Don't highlight everything. If everything is important, nothing is.",
   "The best time to review a topic is 24 hours after you first studied it.",
-  "Drink water consistently during study sessions â€” dehydration reduces concentration.",
+  "Drink water consistently during study sessions — dehydration reduces concentration.",
   "For MCQs, eliminate obviously wrong options first before guessing.",
-  "Your brain consolidates memory during sleep â€” pulling all-nighters before exams backfires.",
-  "In physiology, master the action potential â€” it appears in neurology, cardiology, and muscle physiology.",
-  "Biochemistry and physiology overlap heavily â€” studying them together saves time.",
-  "For anatomy practicals, handle the prosection confidently â€” examiners notice hesitation.",
+  "Your brain consolidates memory during sleep — pulling all-nighters before exams backfires.",
+  "In physiology, master the action potential — it appears in neurology, cardiology, and muscle physiology.",
+  "Biochemistry and physiology overlap heavily — studying them together saves time.",
+  "For anatomy practicals, handle the prosection confidently — examiners notice hesitation.",
   "Set a specific goal before each study session: 'I will finish the brachial plexus today.'",
-  "Use the EduPrime CBT simulator weekly â€” consistency beats cramming every time.",
-  "Every organ has a blood supply, nerve supply, and lymphatic drainage â€” learn all three.",
+  "Use the EduPrime CBT simulator weekly — consistency beats cramming every time.",
+  "Every organ has a blood supply, nerve supply, and lymphatic drainage — learn all three.",
   "When you feel overwhelmed, study the smallest possible unit until confidence returns.",
 ];
 
@@ -108,7 +112,7 @@ export default function DashboardHome() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm uppercase tracking-[0.24em] text-[#16a34a]">Good to see you again</p>
-            <h1 className="mt-3 text-4xl font-semibold">Welcome back, {firstName} 👋</h1>
+            <h1 className="mt-3 text-4xl font-semibold">Welcome back, {firstName}</h1>
             <p className="mt-4 max-w-xl text-slate-400">Keep your momentum going with today's study plan and course progress overview.</p>
           </div>
 

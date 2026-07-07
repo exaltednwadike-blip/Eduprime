@@ -10,7 +10,7 @@ export default function ProgressPage() {
           <BarChart2 />
           <h1 className="text-2xl font-semibold">Progress Tracker</h1>
         </div>
-        <div className="mt-6 text-slate-400">Coming Soon â€” Track your performance across all courses over time.</div>
+        <div className="mt-6 text-slate-400">Coming Soon — Track your performance across all courses over time.</div>
       </div>
     </div>
   );

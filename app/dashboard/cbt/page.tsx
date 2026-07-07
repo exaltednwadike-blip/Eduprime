@@ -209,10 +209,10 @@ export default function CbtPage() {
 
   const resultMessage =
     percentage >= 80
-      ? "Excellent! 🎉"
+      ? "Excellent!"
       : percentage >= 60
-      ? "Good effort! 👍"
-      : "Keep studying! 📚";
+      ? "Good effort!"
+      : "Keep studying!";
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;

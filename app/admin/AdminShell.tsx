@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, List, UploadCloud, Menu, ChevronLeft, Layers, Tag } from "lucide-react";
+import { Home, BookOpen, List, UploadCloud, Menu, ChevronLeft, Layers, Tag, ArrowLeft } from "lucide-react";
 
 const sidebarItems = [
   { key: "dashboard", label: "Dashboard", href: "/admin", icon: Home },
@@ -57,6 +57,16 @@ export function AdminShell({ userEmail, children }: { userEmail: string; childre
               );
             })}
           </nav>
+
+          <div className="mt-auto px-2 pb-4">
+            <Link
+              href="/dashboard"
+              className={`flex items-center rounded-lg border border-white/20 px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-white/10 ${collapsed ? "justify-center" : "gap-2"}`}
+            >
+              <ArrowLeft size={16} />
+              {!collapsed && <span className="truncate">Back to Dashboard</span>}
+            </Link>
+          </div>
         </aside>
 
         <div className="flex min-h-screen flex-1 flex-col bg-[#081021]">
