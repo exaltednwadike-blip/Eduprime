@@ -108,7 +108,7 @@ export default function DashboardHome() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm uppercase tracking-[0.24em] text-[#16a34a]">Good to see you again</p>
-            <h1 className="mt-3 text-4xl font-semibold">Welcome back, {firstName} ðŸ‘‹</h1>
+            <h1 className="mt-3 text-4xl font-semibold">Welcome back, {firstName} 👋</h1>
             <p className="mt-4 max-w-xl text-slate-400">Keep your momentum going with today's study plan and course progress overview.</p>
           </div>
 

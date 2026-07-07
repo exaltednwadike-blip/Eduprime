@@ -36,8 +36,7 @@ export default function Home() {
               Study Smarter. Pass Faster.
             </h1>
             <p className="mt-4 text-base text-slate-200 sm:text-lg">
-              Nigeria's #1 past question repository and CBT simulator for College of Medicine students at
-              UNEC
+              Nigeria's #1 past question repository and CBT simulator for Medical students. Access thousands of past questions, practice under exam conditions, and track your progress to ensure success in your exams.
             </p>
 
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

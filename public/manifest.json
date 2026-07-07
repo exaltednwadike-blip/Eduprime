@@ -4,9 +4,9 @@
   "description": "Study smarter with past questions and CBT practice.",
   "icons": [
     {
-      "src": "/logo.svg",
+      "src": "/logo.png",
       "sizes": "240x240",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ],
   "start_url": "/",

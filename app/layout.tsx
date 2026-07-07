@@ -13,15 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EduPrime",
+  title: "EduPrime - Study Smarter. Pass Faster.",
   description: "Study smarter with past questions and CBT practice.",
   metadataBase: new URL("https://eduprime.com.ng"),
-  icons: [
-    {
-      rel: "icon",
-      url: "/logo.svg",
-    },
-  ],
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -38,9 +36,8 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-full flex flex-col">
-        <div className="fixed left-4 top-4 z-50 flex items-center gap-3 rounded-full bg-[#062f17]/90 px-3 py-2 text-white shadow-2xl shadow-black/30 backdrop-blur-sm">
-          <img src="/logo.svg" alt="EduPrime logo" className="h-10 w-10" />
-          <span className="text-sm font-semibold">EduPrime</span>
+        <div className="fixed left-4 top-4 z-50 flex items-center rounded-full bg-[#062f17]/90 px-3 py-2 text-white shadow-2xl shadow-black/30 backdrop-blur-sm">
+          <img src="/logo.png" alt="EduPrime logo" className="h-10 w-10" />
         </div>
         {children}
       </body>
