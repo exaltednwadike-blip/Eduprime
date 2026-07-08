@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { ToastProvider } from "@/components/ToastContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, ChevronLeft, Sun, Moon } from "lucide-react";
+import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const ADMIN_EMAIL = "exaltednwadike@gmail.com";
@@ -12,7 +12,7 @@ const ADMIN_EMAIL = "exaltednwadike@gmail.com";
 type Theme = "dark" | "light";
 
 const ThemeContext = createContext({
-  theme: "dark" as Theme,
+  theme: "light" as Theme,
   toggle: () => {},
 });
 
@@ -34,36 +34,32 @@ const sidebarItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
   const router = useRouter();
 
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
     const stored = localStorage.getItem("eduprimeTheme");
     if (stored === "light" || stored === "dark") setTheme(stored);
     setMounted(true);
-    // default collapsed on mobile
     if (window.innerWidth < 768) setCollapsed(true);
 
     (async () => {
       const { data } = await supabase.auth.getUser();
       if (!data.user) {
-        router.push('/signin');
-        setAuthChecked(true);
+        router.push("/signin");
         return;
       }
       setUser(data.user);
-      setAuthChecked(true);
     })();
   }, [router]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
-        router.push('/signin');
+      if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
+        router.push("/signin");
       } else if (session) {
         setUser(session.user);
       }
@@ -73,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router]);
 
   useEffect(() => {
-    document.documentElement.style.background = theme === "dark" ? "#052e16" : "#f8fafc";
+    document.documentElement.style.background = theme === "dark" ? "#0d1f12" : "#f9fafb";
     localStorage.setItem("eduprimeTheme", theme);
   }, [theme]);
 
@@ -87,131 +83,138 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (name) {
       return name
         .split(" ")
-        .map((n) => n[0])
+        .filter(Boolean)
+        .map((n) => n[0]?.toUpperCase() ?? "")
         .slice(0, 2)
-        .join("")
-        .toUpperCase();
+        .join("");
     }
     if (email) return email.slice(0, 2).toUpperCase();
     return "?";
   };
 
+  const pageTitle = useMemo(() => {
+    const titleMap: Record<string, string> = {
+      "/dashboard": "Dashboard",
+      "/dashboard/study-hub": "Study Hub",
+      "/dashboard/cbt": "CBT Simulator",
+      "/dashboard/leaderboard": "Leaderboard",
+      "/dashboard/progress": "Progress",
+      "/dashboard/notifications": "Notifications",
+      "/dashboard/settings": "Settings",
+      "/dashboard/profile": "Profile",
+    };
+
+    if (titleMap[pathname || ""])
+      return titleMap[pathname || ""];
+
+    const segment = (pathname || "").replace("/dashboard/", "").replace("/dashboard", "");
+    if (!segment) return "Dashboard";
+
+    return segment
+      .split("-")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  }, [pathname]);
+
   if (!mounted) return null;
 
-  const textColor = theme === "dark" ? "text-white" : "text-[#052e16]";
-  const bgColor = theme === "dark" ? "bg-[#052e16]" : "bg-[#f8fafc]";
-  const panelBg = theme === "dark" ? "bg-[#064e23]" : "bg-white";
+  const shellBg = theme === "dark" ? "bg-[#0d1f12]" : "bg-[#f9fafb]";
+  const shellText = theme === "dark" ? "text-white" : "text-[#111827]";
+  const navbarBg = theme === "dark" ? "bg-[#1a2e1e]" : "bg-white";
+  const navbarBorder = theme === "dark" ? "border-white/10" : "border-gray-200";
+  const navbarIcon = theme === "dark" ? "text-white/80 hover:bg-white/10" : "text-gray-500 hover:bg-gray-100";
+  const contentBg = theme === "dark" ? "bg-[#0d1f12]" : "bg-[#f9fafb]";
 
   return (
     <ThemeContext.Provider value={value}>
       <ToastProvider>
-        <div className={`${bgColor} min-h-screen ${textColor}`}>
+        <div className={`min-h-screen ${shellBg} ${shellText}`}>
           <div className="flex">
-          <aside
-            className={`sticky top-0 z-20 h-screen flex-shrink-0 transition-all duration-200 ${collapsed ? "w-16" : "w-64"}`}
-            style={{ background: "#052e16" }}
-          >
-            <div className={`flex h-16 items-center ${collapsed ? "justify-center" : "justify-between"} px-4`}>
-              {!collapsed && (
-                <div className="flex items-center gap-2">
-                  <div className="text-2xl font-bold tracking-tight">
-                    <span className="text-white">Edu</span>
-                    <span className="text-[#16a34a]">Prime</span>
+            <aside
+              className={`sticky top-0 z-20 h-screen flex-shrink-0 transition-all duration-200 ${collapsed ? "w-14" : "w-56"}`}
+              style={{ background: "#1a5c2a" }}
+            >
+              <div className={`flex h-14 items-center ${collapsed ? "justify-center" : "justify-between"} px-3`}>
+                {!collapsed && (
+                  <div className="flex items-center">
+                    <img src="/logo.png" alt="EduPrime" className="h-8 w-auto" />
                   </div>
-                </div>
-              )}
-              <button
-                aria-label="Toggle sidebar"
-                onClick={handleToggleSidebar}
-                className="inline-flex items-center justify-center rounded-full p-2 text-white/80 hover:bg-white/5"
-              >
-                {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
-              </button>
-            </div>
-
-            <nav className="mt-4 px-2">
-              {sidebarItems.map((item) => {
-                const active = pathname === item.href || pathname?.startsWith(item.href + "/");
-                const Icon = item.icon as any;
-                return (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    className={`group mb-2 flex items-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/5 ${
-                      collapsed ? "justify-center" : "gap-3"
-                    } ${active ? "bg-[#16a34a] text-[#052e16]" : "text-slate-200"}`}
-                  >
-                    <span className="inline-flex items-center justify-center">
-                      <Icon />
-                    </span>
-                    {!collapsed && <span className="truncate">{item.label}</span>}
-                  </Link>
-                );
-              })}
-              {user?.email === ADMIN_EMAIL && (
-                <Link
-                  href="/admin"
-                  className={`group mt-4 flex items-center rounded-xl border border-white/10 px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/5 ${
-                    collapsed ? "justify-center" : "gap-3"
-                  } ${pathname === "/admin" ? "bg-[#16a34a] text-[#052e16]" : "text-slate-200"}`}
+                )}
+                <button
+                  aria-label="Toggle sidebar"
+                  onClick={handleToggleSidebar}
+                  className="inline-flex items-center justify-center rounded-full p-2 text-white hover:bg-white/10"
                 >
-                  <ShieldAlert />
-                  {!collapsed && <span className="truncate">Admin Panel</span>}
-                </Link>
-              )}
-            </nav>
+                  {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
+                </button>
+              </div>
 
-            {!collapsed && (
-              <div className="mt-auto px-4 py-6">
+              <nav className="mt-4 px-2">
+                {sidebarItems.map((item) => {
+                  const active = pathname === item.href || pathname?.startsWith(item.href + "/");
+                  const Icon = item.icon as any;
+                  return (
+                    <Link
+                      key={item.key}
+                      href={item.href}
+                      className={`group mb-1 flex items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                        collapsed ? "justify-center" : "gap-3"
+                      } ${active ? "bg-white font-semibold text-[#1a5c2a]" : "text-white/80 hover:bg-white/10"}`}
+                    >
+                      <span className="inline-flex items-center justify-center">
+                        <Icon size={18} />
+                      </span>
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </Link>
+                  );
+                })}
+                {user?.email === ADMIN_EMAIL && (
+                  <Link
+                    href="/admin"
+                    className={`group mt-3 flex items-center rounded-lg border border-white/20 px-3 py-1.5 text-sm font-medium transition-colors ${
+                      collapsed ? "justify-center" : "gap-3"
+                    } ${pathname === "/admin" ? "bg-white font-semibold text-[#1a5c2a]" : "text-white/80 hover:bg-white/10"}`}
+                  >
+                    <ShieldAlert size={18} />
+                    {!collapsed && <span className="truncate">Admin Panel</span>}
+                  </Link>
+                )}
+              </nav>
+            </aside>
+
+            <div className="flex min-h-screen flex-1 flex-col">
+              <header className={`flex h-14 items-center justify-between border-b px-4 sm:px-6 ${navbarBg} ${navbarBorder}`}>
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={toggle}
-                    className="ml-2 inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2 text-sm"
+                    onClick={() => setCollapsed((c) => !c)}
+                    className={`inline-flex items-center justify-center rounded-full p-2 ${navbarIcon}`}
                   >
-                    {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-                    <span className="text-slate-200">{theme === "dark" ? "Dark" : "Light"}</span>
+                    <Menu size={18} />
                   </button>
+                  <h2 className="text-base font-semibold">{pageTitle}</h2>
                 </div>
-              </div>
-            )}
-          </aside>
 
-          <div className="flex min-h-screen flex-1 flex-col">
-            <header className={`flex h-16 items-center justify-between px-6 ${panelBg} border-b border-white/5`}>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setCollapsed((c) => !c)}
-                  className="md:hidden inline-flex items-center justify-center rounded-full bg-white/5 p-2 text-white/80"
-                >
-                  <Menu size={18} />
-                </button>
-                <div className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                  <span className={theme === "dark" ? "text-white" : "text-[#052e16]"}>Edu</span>
-                  <span className="text-[#16a34a]">Prime</span>
+                <div className="flex items-center gap-3">
+                  <button className={`rounded-full p-2 ${navbarIcon}`}>
+                    <BellIcon size={18} />
+                  </button>
+                  <div
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1a5c2a] text-sm font-semibold text-white"
+                    title={user?.email || "User"}
+                  >
+                    {getInitials(user?.user_metadata?.full_name, user?.email)}
+                  </div>
                 </div>
-              </div>
+              </header>
 
-              <div className="flex items-center gap-4">
-                <button className="rounded-full p-2 text-slate-300 hover:bg-white/5">
-                  <BellIcon />
-                </button>
-                <div
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-sm font-semibold text-white"
-                  title={user?.email || "User"}
-                >
-                  {getInitials(user?.user_metadata?.full_name, user?.email)}
-                </div>
-              </div>
-            </header>
-
-            <main className="flex-1 overflow-auto p-6 sm:p-8">{children}</main>
+              <main className={`flex-1 overflow-auto p-4 sm:p-6 lg:p-8 ${contentBg}`}>{children}</main>
+            </div>
           </div>
         </div>
-      </div>
       </ToastProvider>
     </ThemeContext.Provider>
   );
 }
-
 
 
