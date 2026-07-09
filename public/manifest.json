@@ -1,16 +1,21 @@
 {
   "name": "EduPrime",
   "short_name": "EduPrime",
-  "description": "Study smarter with past questions and CBT practice.",
+  "description": "Study smarter with EduPrime",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0a1f0f",
+  "theme_color": "#16a34a",
   "icons": [
     {
-      "src": "/logo.png",
-      "sizes": "240x240",
+      "src": "/logo-512.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#052e16",
-  "theme_color": "#16a34a"
+  ]
 }
