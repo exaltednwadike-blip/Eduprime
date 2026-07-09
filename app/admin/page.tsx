@@ -1,23 +1,39 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, Layers, Tag, List } from "lucide-react";
+import { BookOpen, Layers, Tag, List, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const statsConfig = [
-  { label: "Total Subjects", table: "subjects", icon: BookOpen },
-  { label: "Total Categories", table: "categories", icon: Layers },
-  { label: "Total Topics", table: "topics", icon: Tag },
-  { label: "Total Questions", table: "questions", icon: List },
+  { label: "Total Subjects", table: "subjects", icon: BookOpen, color: "text-emerald-400 bg-emerald-500/15" },
+  { label: "Total Categories", table: "categories", icon: Layers, color: "text-violet-400 bg-violet-500/15" },
+  { label: "Total Topics", table: "topics", icon: Tag, color: "text-amber-400 bg-amber-500/15" },
+  { label: "Total Questions", table: "questions", icon: List, color: "text-sky-400 bg-sky-500/15" },
 ];
 
 export default function AdminHomePage() {
   const [counts, setCounts] = useState<number[]>([0, 0, 0, 0]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    const fetchCounts = async () => {
+    const checkAdminAndLoad = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setAuthChecked(true); return; }
+
+      const { data: adminData } = await supabase
+        .from("admins")
+        .select("email")
+        .eq("email", user.email)
+        .single();
+
+      setIsAdmin(!!adminData);
+      setAuthChecked(true);
+
+      if (!adminData) return;
+
       setLoading(true);
       setError(null);
 
@@ -29,9 +45,7 @@ export default function AdminHomePage() {
         );
 
         const nextCounts = results.map((result) => {
-          if (result.error) {
-            throw new Error(result.error.message);
-          }
+          if (result.error) throw new Error(result.error.message);
           return result.count ?? 0;
         });
 
@@ -43,26 +57,49 @@ export default function AdminHomePage() {
       }
     };
 
-    fetchCounts();
+    checkAdminAndLoad();
   }, []);
 
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a1f0f]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a1f0f]">
+        <div className="text-center">
+          <p className="text-xl font-semibold text-white">Access Denied</p>
+          <p className="mt-2 text-gray-400">You do not have admin privileges.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-[#064e23] p-6 sm:p-8">
-        <h1 className="text-3xl font-semibold text-white">Admin Dashboard</h1>
-        <p className="mt-2 text-slate-400">Overview of EduPrime subjects, categories, topics, and questions.</p>
+    <div className="space-y-4 p-6">
+      <div className="rounded-2xl border border-white/10 bg-[#0f2914] p-4 sm:p-6">
+        <h1 className="text-xl font-semibold text-white sm:text-2xl">Admin Dashboard</h1>
+        <p className="mt-1.5 text-xs text-gray-400 sm:text-sm">
+          Overview of EduPrime subjects, categories, topics, and questions.
+        </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {statsConfig.map((stat, index) => {
-          const Icon = stat.icon as any;
+          const Icon = stat.icon;
           return (
-            <div key={stat.label} className="rounded-3xl bg-[#065f2c] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
-              <div className="flex items-center justify-between text-slate-400">
-                <span>{stat.label}</span>
-                <Icon className="h-6 w-6 text-[#16a34a]" />
+            <div key={stat.label} className="rounded-xl bg-[#0f2914] border border-white/10 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">{stat.label}</span>
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full ${stat.color}`}>
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
               </div>
-              <div className="mt-6 text-5xl font-semibold text-white">
+              <div className="mt-2 text-2xl font-semibold text-white">
                 {loading ? "..." : counts[index].toLocaleString()}
               </div>
             </div>
@@ -70,15 +107,12 @@ export default function AdminHomePage() {
         })}
       </div>
 
-      {loading && (
-        <div className="rounded-3xl bg-[#065f2c] p-6 text-slate-300">Loading dashboard stats...</div>
-      )}
       {error && (
-        <div className="rounded-3xl bg-rose-500/10 p-6 text-rose-200">{error}</div>
+        <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+          <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
     </div>
   );
 }
-
-
-

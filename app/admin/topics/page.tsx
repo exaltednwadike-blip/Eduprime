@@ -6,127 +6,107 @@ import { FormEvent, useEffect, useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-type Subject = {
-  id: number;
-  name: string;
-};
-
-type Category = {
-  id: number;
-  subject_id: number;
-  name: string;
-};
-
-type Topic = {
-  id: number;
-  category_id: number;
-  name: string;
-};
+type Subject = { id: string; name: string };
+type Category = { id: string; subject_id: string; name: string };
+type Topic = { id: string; category_id: string; name: string };
 
 export default function AdminTopicsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [name, setName] = useState("");
   const [editing, setEditing] = useState<Topic | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    fetchLookupData();
+    const checkAdminAndLoad = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setAuthChecked(true); return; }
+
+      const { data: adminData } = await supabase
+        .from("admins")
+        .select("email")
+        .eq("email", user.email)
+        .single();
+
+      setIsAdmin(!!adminData);
+      setAuthChecked(true);
+
+      if (adminData) {
+        await fetchAll();
+      }
+    };
+    checkAdminAndLoad();
   }, []);
 
-  useEffect(() => {
-    if (!selectedSubjectId && subjects.length > 0) {
-      setSelectedSubjectId(subjects[0].id);
-    }
-  }, [subjects, selectedSubjectId]);
-
-  useEffect(() => {
-    if (selectedSubjectId && !selectedCategoryId) {
-      const firstCategory = categories.find((category) => category.subject_id === selectedSubjectId);
-      if (firstCategory) {
-        setSelectedCategoryId(firstCategory.id);
-      }
-    }
-  }, [selectedSubjectId, categories, selectedCategoryId]);
-
-  const fetchLookupData = async () => {
+  const fetchAll = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const [subjectRes, categoryRes, topicRes] = await Promise.all([
-        supabase.from("subjects").select("id, name").order("name", { ascending: true }),
-        supabase.from("categories").select("id, subject_id, name").order("name", { ascending: true }),
-        supabase.from("topics").select("id, category_id, name").order("name", { ascending: true }),
+        supabase.from("subjects").select("id, name").order("name"),
+        supabase.from("categories").select("id, subject_id, name").order("name"),
+        supabase.from("topics").select("id, category_id, name").order("name"),
       ]);
 
       if (subjectRes.error) throw new Error(subjectRes.error.message);
       if (categoryRes.error) throw new Error(categoryRes.error.message);
       if (topicRes.error) throw new Error(topicRes.error.message);
 
-      const subjectsData = subjectRes.data ?? [];
-      const categoriesData = categoryRes.data ?? [];
-      const topicsData = topicRes.data ?? [];
+      setSubjects(subjectRes.data ?? []);
+      setCategories(categoryRes.data ?? []);
+      setTopics(topicRes.data ?? []);
 
-      setSubjects(subjectsData);
-      setCategories(categoriesData);
-      setTopics(topicsData);
-      setSelectedSubjectId((prev) => prev ?? subjectsData[0]?.id ?? null);
-      setSelectedCategoryId((prev) => prev ?? categoriesData.find((category) => category.subject_id === subjectsData[0]?.id)?.id ?? null);
+      if (subjectRes.data?.[0]) {
+        setSelectedSubjectId(subjectRes.data[0].id);
+        const firstCategory = categoryRes.data?.find(c => c.subject_id === subjectRes.data![0].id);
+        if (firstCategory) setSelectedCategoryId(firstCategory.id);
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to load topics.");
+      setError(err.message || "Failed to load data.");
     } finally {
       setLoading(false);
     }
   };
 
   const fetchTopics = async () => {
-    setLoading(true);
-    setError(null);
-
-    const { data, error } = await supabase.from("topics").select("id, category_id, name").order("name", { ascending: true });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
-    }
-
+    const { data, error } = await supabase.from("topics").select("id, category_id, name").order("name");
+    if (error) { setError(error.message); return; }
     setTopics(data ?? []);
-    setLoading(false);
+  };
+
+  const handleSubjectChange = (subjectId: string) => {
+    setSelectedSubjectId(subjectId);
+    setSelectedCategoryId("");
+    const firstCategory = categories.find(c => c.subject_id === subjectId);
+    if (firstCategory) setSelectedCategoryId(firstCategory.id);
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!selectedCategoryId) {
-      setError("Please select a category before saving a topic.");
-      return;
-    }
-    if (!name.trim()) {
-      setError("Topic name is required.");
-      return;
-    }
+    if (!selectedCategoryId) { setError("Please select a category."); return; }
+    if (!name.trim()) { setError("Topic name is required."); return; }
 
-    setLoading(true);
+    setSaving(true);
     setError(null);
 
     if (editing) {
       const { error } = await supabase.from("topics").update({ name, category_id: selectedCategoryId }).eq("id", editing.id);
-      if (error) {
-        setError(error.message);
-      }
+      if (error) { setError(error.message); setSaving(false); return; }
     } else {
       const { error } = await supabase.from("topics").insert({ name, category_id: selectedCategoryId });
-      if (error) {
-        setError(error.message);
-      }
+      if (error) { setError(error.message); setSaving(false); return; }
     }
 
     setName("");
     setEditing(null);
+    setSaving(false);
     await fetchTopics();
   };
 
@@ -134,111 +114,200 @@ export default function AdminTopicsPage() {
     setEditing(topic);
     setName(topic.name);
     setSelectedCategoryId(topic.category_id);
-    const category = categories.find((category) => category.id === topic.category_id);
-    if (category) {
-      setSelectedSubjectId(category.subject_id);
-    }
+    const category = categories.find(c => c.id === topic.category_id);
+    if (category) setSelectedSubjectId(category.subject_id);
   };
 
   const handleDelete = async (topic: Topic) => {
-    if (!window.confirm(`Delete topic ${topic.name}?`)) return;
+    if (!window.confirm(`Delete topic "${topic.name}"? This will also delete all questions under it.`)) return;
     setLoading(true);
     const { error } = await supabase.from("topics").delete().eq("id", topic.id);
-    if (error) {
-      setError(error.message);
-    } else {
-      await fetchTopics();
-    }
+    if (error) setError(error.message);
+    else await fetchTopics();
     setLoading(false);
   };
 
-  const filteredCategories = categories.filter((category) => category.subject_id === selectedSubjectId);
-  const filteredTopics = topics.filter((topic) => topic.category_id === selectedCategoryId);
+  const filteredCategories = categories.filter(c => c.subject_id === selectedSubjectId);
+  const filteredTopics = topics.filter(t => t.category_id === selectedCategoryId);
 
-  return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-[#064e23] p-6 sm:p-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold text-white">Topics</h1>
-            <p className="mt-2 text-slate-400">Create and manage topics under categories.</p>
-          </div>
-          <button onClick={() => setEditing(null)} className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 font-semibold text-[#052e16]">
-            <Plus size={16} /> New Topic
-          </button>
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a1f0f]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a1f0f]">
+        <div className="text-center">
+          <p className="text-xl font-semibold text-white">Access Denied</p>
+          <p className="mt-2 text-gray-400">You do not have admin privileges.</p>
         </div>
       </div>
+    );
+  }
 
-      <div className="rounded-3xl bg-[#064e23] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
-        <form onSubmit={handleSubmit} className="grid gap-4 lg:grid-cols-3">
-          <label className="space-y-2 text-sm text-slate-200">
-            Subject
-            <select value={selectedSubjectId ?? ""} onChange={(event) => setSelectedSubjectId(Number(event.target.value) || null)} className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white">
-              <option value="">Select subject</option>
-              {subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>{subject.name}</option>
-              ))}
-            </select>
-          </label>
+  return (
+    <div className="space-y-6 p-6">
 
-          <label className="space-y-2 text-sm text-slate-200">
-            Category
-            <select value={selectedCategoryId ?? ""} onChange={(event) => setSelectedCategoryId(Number(event.target.value) || null)} className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white">
-              <option value="">Select category</option>
-              {filteredCategories.map((category) => (
-                <option key={category.id} value={category.id}>{category.name}</option>
-              ))}
-            </select>
-          </label>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Topics</h1>
+          <p className="mt-1 text-sm text-gray-400">Create and manage topics under categories.</p>
+        </div>
+        <button
+          onClick={() => { setEditing(null); setName(""); }}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#2db54a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1a5c2a] transition"
+        >
+          <Plus size={16} /> New Topic
+        </button>
+      </div>
 
-          <label className="space-y-2 text-sm text-slate-200 lg:col-span-3">
-            Topic Name
-            <input value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white" />
-          </label>
+      {/* Form */}
+      <div className="rounded-xl bg-[#0f2914] border border-white/10 p-6">
+        <h2 className="mb-4 text-lg font-semibold text-white">
+          {editing ? "Edit Topic" : "Add New Topic"}
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Subject</label>
+              <select
+                value={selectedSubjectId}
+                onChange={(e) => handleSubjectChange(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-2 text-white focus:border-[#2db54a] focus:outline-none"
+              >
+                <option value="">Select subject</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="lg:col-span-3 flex flex-wrap items-center gap-3">
-            <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-5 py-3 font-semibold text-[#052e16]">
-              {editing ? "Save Topic" : "Add Topic"}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Category</label>
+              <select
+                value={selectedCategoryId}
+                onChange={(e) => setSelectedCategoryId(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-2 text-white focus:border-[#2db54a] focus:outline-none"
+              >
+                <option value="">Select category</option>
+                {filteredCategories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Topic Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Trigeminal Nerve"
+              className="w-full rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[#2db54a] focus:outline-none"
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-400">{error}</p>}
+
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-[#2db54a] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1a5c2a] transition disabled:opacity-60"
+            >
+              {saving ? "Saving..." : editing ? "Save Changes" : "Add Topic"}
             </button>
             {editing && (
-              <button type="button" onClick={() => { setEditing(null); setName(""); }} className="inline-flex items-center gap-2 rounded-full bg-white/5 px-5 py-3 text-slate-200">
+              <button
+                type="button"
+                onClick={() => { setEditing(null); setName(""); }}
+                className="rounded-lg border border-white/20 px-5 py-2 text-sm font-semibold text-gray-300 hover:bg-white/10 transition"
+              >
                 Cancel
               </button>
             )}
-            {error && <div className="text-rose-300">{error}</div>}
-            {loading && <div className="text-slate-300">Saving...</div>}
           </div>
         </form>
       </div>
 
-      <div className="grid gap-4">
-        {filteredTopics.map((topic) => (
-          <div key={topic.id} className="rounded-3xl bg-[#065f2c] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-white">{topic.name}</h2>
-                <p className="mt-2 text-slate-400">
-                  Subject: {subjects.find((subject) => subject.id === selectedSubjectId)?.name ?? "Unknown"} / Category: {categories.find((category) => category.id === topic.category_id)?.name ?? "Unknown"}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button onClick={() => handleEdit(topic)} className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10">
-                  <Pencil size={16} /> Edit
-                </button>
-                <button onClick={() => handleDelete(topic)} className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-300 hover:bg-rose-500/20">
-                  <Trash2 size={16} /> Delete
-                </button>
-              </div>
-            </div>
+      {/* Topics List */}
+      <div className="rounded-xl bg-[#0f2914] border border-white/10 overflow-hidden">
+        <div className="border-b border-white/10 px-6 py-4">
+          <div className="flex flex-wrap gap-3">
+            <select
+              value={selectedSubjectId}
+              onChange={(e) => handleSubjectChange(e.target.value)}
+              className="rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-1.5 text-sm text-white focus:outline-none"
+            >
+              <option value="">All Subjects</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <select
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              className="rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-1.5 text-sm text-white focus:outline-none"
+            >
+              <option value="">All Categories</option>
+              {filteredCategories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
-        ))}
-        {filteredTopics.length === 0 && (
-          <div className="rounded-3xl bg-[#065f2c] p-6 text-slate-400">No topics found for the selected subject and category.</div>
+        </div>
+
+        {loading ? (
+          <div className="p-8 text-center text-gray-400">Loading topics...</div>
+        ) : filteredTopics.length === 0 ? (
+          <div className="p-8 text-center text-gray-400">No topics found. Add one above.</div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-xs font-medium uppercase tracking-wide text-gray-400">
+                <th className="px-6 py-3">Topic Name</th>
+                <th className="px-6 py-3">Category</th>
+                <th className="px-6 py-3">Subject</th>
+                <th className="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filteredTopics.map((topic) => {
+                const category = categories.find(c => c.id === topic.category_id);
+                const subject = subjects.find(s => s.id === category?.subject_id);
+                return (
+                  <tr key={topic.id} className="hover:bg-white/5 transition">
+                    <td className="px-6 py-4 text-sm font-medium text-white">{topic.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-400">{category?.name || "—"}</td>
+                    <td className="px-6 py-4 text-sm text-gray-400">{subject?.name || "—"}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEdit(topic)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/10 transition"
+                        >
+                          <Pencil size={12} /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(topic)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10 transition"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
   );
 }
-
-
-

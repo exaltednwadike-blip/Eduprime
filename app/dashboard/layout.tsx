@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { ToastProvider } from "@/components/ToastContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, ChevronLeft } from "lucide-react";
+import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, ChevronLeft, Sun, Moon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const ADMIN_EMAIL = "exaltednwadike@gmail.com";
@@ -12,7 +12,7 @@ const ADMIN_EMAIL = "exaltednwadike@gmail.com";
 type Theme = "dark" | "light";
 
 const ThemeContext = createContext({
-  theme: "light" as Theme,
+  theme: "dark" as Theme,
   toggle: () => {},
 });
 
@@ -34,11 +34,11 @@ const sidebarItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
   const router = useRouter();
-
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
     const stored = localStorage.getItem("eduprimeTheme");
@@ -50,9 +50,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const { data } = await supabase.auth.getUser();
       if (!data.user) {
         router.push("/signin");
+        setAuthChecked(true);
         return;
       }
       setUser(data.user);
+      setAuthChecked(true);
     })();
   }, [router]);
 
@@ -64,32 +66,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setUser(session.user);
       }
     });
-
     return () => subscription.unsubscribe();
   }, [router]);
 
   useEffect(() => {
-    document.documentElement.style.background = theme === "dark" ? "#0d1f12" : "#f9fafb";
+    document.documentElement.style.background = theme === "dark" ? "#0a1f0f" : "#f9fafb";
     localStorage.setItem("eduprimeTheme", theme);
   }, [theme]);
 
   const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
-
   const value = useMemo(() => ({ theme, toggle }), [theme]);
-
-  const handleToggleSidebar = () => setCollapsed((c) => !c);
 
   const getInitials = (name?: string | null, email?: string | null) => {
     if (name) {
-      return name
-        .split(" ")
-        .filter(Boolean)
-        .map((n) => n[0]?.toUpperCase() ?? "")
-        .slice(0, 2)
-        .join("");
+      return name.split(" ").filter(Boolean).map((n) => n[0]?.toUpperCase() ?? "").slice(0, 2).join("");
     }
     if (email) return email.slice(0, 2).toUpperCase();
     return "?";
+  };
+
+  const getFirstName = (name?: string | null, email?: string | null) => {
+    if (name) return name.split(" ")[0];
+    if (email) return email.split("@")[0];
+    return "Student";
   };
 
   const pageTitle = useMemo(() => {
@@ -103,112 +102,148 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       "/dashboard/settings": "Settings",
       "/dashboard/profile": "Profile",
     };
-
-    if (titleMap[pathname || ""])
-      return titleMap[pathname || ""];
-
-    const segment = (pathname || "").replace("/dashboard/", "").replace("/dashboard", "");
-    if (!segment) return "Dashboard";
-
-    return segment
-      .split("-")
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(" ");
+    return titleMap[pathname || ""] || "Dashboard";
   }, [pathname]);
 
-  if (!mounted) return null;
+  if (!mounted || !authChecked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a1f0f]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
+      </div>
+    );
+  }
 
-  const shellBg = theme === "dark" ? "bg-[#0d1f12]" : "bg-[#f9fafb]";
-  const shellText = theme === "dark" ? "text-white" : "text-[#111827]";
-  const navbarBg = theme === "dark" ? "bg-[#1a2e1e]" : "bg-white";
-  const navbarBorder = theme === "dark" ? "border-white/10" : "border-gray-200";
-  const navbarIcon = theme === "dark" ? "text-white/80 hover:bg-white/10" : "text-gray-500 hover:bg-gray-100";
-  const contentBg = theme === "dark" ? "bg-[#0d1f12]" : "bg-[#f9fafb]";
+  const isDark = theme === "dark";
+  const shellBg = isDark ? "bg-[#0a1f0f]" : "bg-[#f9fafb]";
+  const shellText = isDark ? "text-white" : "text-gray-900";
+  const navBg = isDark ? "bg-[#0f2914]" : "bg-white";
+  const navBorder = isDark ? "border-white/10" : "border-gray-200";
+  const navIcon = isDark ? "text-white/70 hover:bg-white/10" : "text-gray-500 hover:bg-gray-100";
+  const navTitle = isDark ? "text-white" : "text-gray-900";
 
   return (
     <ThemeContext.Provider value={value}>
       <ToastProvider>
         <div className={`min-h-screen ${shellBg} ${shellText}`}>
           <div className="flex">
+
+            {/* SIDEBAR */}
             <aside
-              className={`sticky top-0 z-20 h-screen flex-shrink-0 transition-all duration-200 ${collapsed ? "w-14" : "w-56"}`}
-              style={{ background: "#1a5c2a" }}
+              className={`sticky top-0 z-20 flex h-screen flex-shrink-0 flex-col transition-all duration-200 ${collapsed ? "w-14" : "w-56"}`}
+              style={{ background: "#0f2914" }}
             >
-              <div className={`flex h-14 items-center ${collapsed ? "justify-center" : "justify-between"} px-3`}>
+              {/* Logo */}
+              <div className={`flex h-16 items-center border-b border-white/10 px-3 ${collapsed ? "justify-center" : "justify-between"}`}>
                 {!collapsed && (
-                  <div className="flex items-center">
-                    <img src="/logo.png" alt="EduPrime" className="h-8 w-auto" />
-                  </div>
+                  <img src="/logo.png" alt="EduPrime" className="h-9 w-auto" />
                 )}
                 <button
-                  aria-label="Toggle sidebar"
-                  onClick={handleToggleSidebar}
-                  className="inline-flex items-center justify-center rounded-full p-2 text-white hover:bg-white/10"
+                  onClick={() => setCollapsed((c) => !c)}
+                  className="rounded-lg p-1.5 text-white/70 hover:bg-white/10"
                 >
                   {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
                 </button>
               </div>
 
-              <nav className="mt-4 px-2">
+              {/* Nav items */}
+              <nav className="mt-3 flex-1 space-y-0.5 px-2">
                 {sidebarItems.map((item) => {
                   const active = pathname === item.href || pathname?.startsWith(item.href + "/");
-                  const Icon = item.icon as any;
+                  const Icon = item.icon;
                   return (
                     <Link
                       key={item.key}
                       href={item.href}
-                      className={`group mb-1 flex items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                      className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                         collapsed ? "justify-center" : "gap-3"
-                      } ${active ? "bg-white font-semibold text-[#1a5c2a]" : "text-white/80 hover:bg-white/10"}`}
+                      } ${active ? "bg-[#2db54a] text-white font-semibold" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
                     >
-                      <span className="inline-flex items-center justify-center">
-                        <Icon size={18} />
-                      </span>
+                      <Icon size={18} />
                       {!collapsed && <span className="truncate">{item.label}</span>}
                     </Link>
                   );
                 })}
+
                 {user?.email === ADMIN_EMAIL && (
                   <Link
                     href="/admin"
-                    className={`group mt-3 flex items-center rounded-lg border border-white/20 px-3 py-1.5 text-sm font-medium transition-colors ${
+                    className={`mt-2 flex items-center rounded-lg border border-white/20 px-3 py-2 text-sm font-medium transition-colors ${
                       collapsed ? "justify-center" : "gap-3"
-                    } ${pathname === "/admin" ? "bg-white font-semibold text-[#1a5c2a]" : "text-white/80 hover:bg-white/10"}`}
+                    } ${pathname?.startsWith("/admin") ? "bg-[#2db54a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
                   >
                     <ShieldAlert size={18} />
                     {!collapsed && <span className="truncate">Admin Panel</span>}
                   </Link>
                 )}
               </nav>
+
+              {/* User profile at bottom */}
+              {!collapsed && (
+                <div className="border-t border-white/10 p-3">
+                  <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-lg p-2 hover:bg-white/10 transition">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#2db54a] text-xs font-bold text-white">
+                      {getInitials(user?.user_metadata?.full_name, user?.email)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-white capitalize">
+                        {getFirstName(user?.user_metadata?.full_name, user?.email)}
+                      </p>
+                      <p className="text-xs text-white/50">View Profile</p>
+                    </div>
+                  </Link>
+                </div>
+              )}
+
+              {collapsed && (
+                <div className="border-t border-white/10 p-2">
+                  <Link href="/dashboard/profile" className="flex justify-center rounded-lg p-2 hover:bg-white/10">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2db54a] text-xs font-bold text-white">
+                      {getInitials(user?.user_metadata?.full_name, user?.email)}
+                    </div>
+                  </Link>
+                </div>
+              )}
             </aside>
 
-            <div className="flex min-h-screen flex-1 flex-col">
-              <header className={`flex h-14 items-center justify-between border-b px-4 sm:px-6 ${navbarBg} ${navbarBorder}`}>
+            {/* MAIN CONTENT */}
+            <div className="flex min-h-screen flex-1 flex-col overflow-hidden">
+
+              {/* Navbar */}
+              <header className={`flex h-14 flex-shrink-0 items-center justify-between border-b px-4 sm:px-6 ${navBg} ${navBorder}`}>
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setCollapsed((c) => !c)}
-                    className={`inline-flex items-center justify-center rounded-full p-2 ${navbarIcon}`}
-                  >
+                  <button onClick={() => setCollapsed((c) => !c)} className={`rounded-lg p-1.5 ${navIcon}`}>
                     <Menu size={18} />
                   </button>
-                  <h2 className="text-base font-semibold">{pageTitle}</h2>
+                  <h2 className={`text-base font-semibold ${navTitle}`}>{pageTitle}</h2>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <button className={`rounded-full p-2 ${navbarIcon}`}>
+                <div className="flex items-center gap-2">
+                  {/* Theme toggle */}
+                  <button onClick={toggle} className={`rounded-lg p-1.5 ${navIcon}`} title="Toggle theme">
+                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                  </button>
+
+                  {/* Notification bell */}
+                  <button className={`relative rounded-lg p-1.5 ${navIcon}`}>
                     <BellIcon size={18} />
                   </button>
-                  <div
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1a5c2a] text-sm font-semibold text-white"
-                    title={user?.email || "User"}
-                  >
-                    {getInitials(user?.user_metadata?.full_name, user?.email)}
-                  </div>
+
+                  {/* Avatar + dropdown arrow */}
+                  <Link href="/dashboard/profile" className="flex items-center gap-1.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a5c2a] text-xs font-bold text-white">
+                      {getInitials(user?.user_metadata?.full_name, user?.email)}
+                    </div>
+                    <span className={`hidden sm:block text-sm font-medium ${navTitle} capitalize`}>
+                      {getFirstName(user?.user_metadata?.full_name, user?.email)}
+                    </span>
+                  </Link>
                 </div>
               </header>
 
-              <main className={`flex-1 overflow-auto p-4 sm:p-6 lg:p-8 ${contentBg}`}>{children}</main>
+              {/* Page content */}
+              <main className={`flex-1 overflow-auto ${isDark ? "bg-[#0a1f0f]" : "bg-[#f9fafb]"}`}>
+                {children}
+              </main>
             </div>
           </div>
         </div>
@@ -216,5 +251,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </ThemeContext.Provider>
   );
 }
-
-
