@@ -1,208 +1,231 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastContext";
-
-const validateEmail = (email: string) => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-};
-
-const validatePassword = (password: string) => {
-  return password.length >= 6;
-};
+import Link from "next/link";
+import { MailCheck } from "lucide-react";
 
 export default function SignupPage() {
-  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [signupComplete, setSignupComplete] = useState(false);
+  const [signedUpEmail, setSignedUpEmail] = useState("");
   const { showToast } = useToast();
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSignUp = async () => {
+    if (!fullName.trim()) {
+      showToast({ type: "error", title: "Sign up failed", message: "Please enter your full name." });
+      return;
+    }
+
+    if (!email.trim()) {
+      showToast({ type: "error", title: "Sign up failed", message: "Please enter your email address." });
+      return;
+    }
+
+    if (!password) {
+      showToast({ type: "error", title: "Sign up failed", message: "Please enter a password." });
+      return;
+    }
+
+    if (password.length < 6) {
+      showToast({ type: "error", title: "Password too short", message: "Your password must be at least 6 characters long." });
+      return;
+    }
+
     if (password !== confirmPassword) {
       showToast({ type: "error", title: "Passwords do not match", message: "Please make sure both passwords are the same." });
       return;
     }
 
-    if (!fullName.trim() || !email.trim() || !password) {
-      showToast({ type: "error", title: "Sign up failed", message: "Please fill in all fields" });
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      showToast({ type: "error", title: "Sign up failed", message: "Please enter a valid email address" });
-      return;
-    }
-
-    if (!validatePassword(password)) {
-      showToast({ type: "error", title: "Password too short", message: "Your password must be at least 6 characters long." });
-      return;
-    }
-
     setLoading(true);
 
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+    // Clear any lingering session first — otherwise an already-logged-in account
+    // stays active in this browser and the new signup gets masked by it.
+    await supabase.auth.signOut();
 
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+      },
+    });
+
+    if (error || !data?.user) {
       setLoading(false);
-
-      if (error || !data?.user) {
-        const msg = error?.message || "Unable to sign up. Please try again.";
-        const lower = msg.toLowerCase();
-        if (lower.includes("already") || lower.includes("registered") || lower.includes("duplicate")) {
-          showToast({ type: "error", title: "Email already registered", message: "An account with this email already exists. Please sign in." });
-        } else {
-          showToast({ type: "error", title: "Sign up failed", message: msg });
-        }
-        return;
+      const msg = error?.message?.toLowerCase() || "";
+      if (msg.includes("already") || msg.includes("registered") || msg.includes("duplicate")) {
+        showToast({ type: "error", title: "Email already registered", message: "An account with this email already exists. Please sign in." });
+      } else {
+        showToast({ type: "error", title: "Sign up failed", message: error?.message || "Unable to sign up. Please try again." });
       }
-
-      const user = data.user;
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: user.id,
-        email,
-        full_name: fullName,
-      });
-
-      if (profileError) {
-        showToast({ type: "error", title: "Sign up partial", message: "Account created, but failed to save profile." });
-        return;
-      }
-
-      showToast({ type: "success", title: "Account created!", message: "Welcome to EduPrime! Please select your level." });
-      router.push("/onboarding");
-    } catch (err) {
-      setLoading(false);
-      showToast({ type: "error", title: "Sign up failed", message: "Please check your internet connection and try again." });
+      return;
     }
+
+    // Note: with email confirmation required, there is no active session yet for
+    // this new user, so this insert may be blocked by RLS until they confirm and
+    // log in. Flagging this — a Postgres trigger on auth.users is the more
+    // reliable way to create the profiles row automatically.
+    await supabase.from("profiles").insert({
+      id: data.user.id,
+      email,
+      full_name: fullName,
+    });
+
+    setLoading(false);
+    setSignedUpEmail(email);
+    setSignupComplete(true);
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignUp = async () => {
     setGoogleLoading(true);
-    try {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/auth/callback',
-        },
-      });
-    } catch (err) {
-      showToast({ type: 'error', title: 'Sign up failed', message: 'Unable to sign in with Google' });
-    } finally {
+    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) {
+      showToast({ type: "error", title: "Sign up failed", message: "Unable to sign up with Google." });
       setGoogleLoading(false);
     }
   };
 
+  if (signupComplete) {
+    return (
+      <div className="min-h-screen bg-[#052e16] text-white">
+        <header className="border-b border-white/10 bg-[#052e16] px-6 py-4 sm:px-8">
+          <div className="mx-auto flex max-w-6xl items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <img src="/logo.png" alt="EduPrime" className="h-10 w-auto" />
+            </Link>
+          </div>
+        </header>
+
+        <main className="flex min-h-[calc(100vh-64px)] items-center justify-center px-6 py-12">
+          <div className="w-full max-w-md rounded-3xl bg-[#064e23] p-8 text-center shadow-xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#16a34a]/15">
+              <MailCheck className="h-7 w-7 text-[#22c55e]" />
+            </div>
+            <h1 className="mt-4 text-2xl font-semibold text-white">Check your email</h1>
+            <p className="mt-2 text-sm text-slate-400">
+              We've sent a confirmation link to <span className="font-semibold text-white">{signedUpEmail}</span>.
+              Click the link in that email to activate your account, then sign in.
+            </p>
+            <Link
+              href="/signin"
+              className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#16a34a] px-5 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e]"
+            >
+              Go to Sign In
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#052e16] text-white">
       <header className="border-b border-white/10 bg-[#052e16] px-6 py-4 sm:px-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-            <span className="text-white">Edu</span>
-            <span className="text-[#16a34a]">Prime</span>
-          </div>
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/logo.png" alt="EduPrime" className="h-10 w-auto" />
+          </Link>
         </div>
       </header>
 
-      <main className="flex min-h-[calc(100vh-64px)] items-center justify-center px-6 py-12 sm:px-8">
-        <div className="w-full max-w-md rounded-3xl bg-[#064e23] p-8 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+      <main className="flex min-h-[calc(100vh-64px)] items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md rounded-3xl bg-[#064e23] p-8 shadow-xl">
           <h1 className="text-3xl font-semibold text-white">Create Your Account</h1>
           <p className="mt-2 text-sm text-slate-400">Start your journey with EduPrime.</p>
 
-          <div className="mt-8">
+          <div className="mt-8 space-y-4">
             <button
               type="button"
-              onClick={handleGoogleSignIn}
+              onClick={handleGoogleSignUp}
               disabled={googleLoading}
-              className="w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70 flex items-center justify-center gap-3"
+              className="flex w-full items-center justify-center gap-3 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-slate-100 disabled:opacity-70"
             >
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-lg font-bold">G</span>
-              <span>{googleLoading ? 'Continuing...' : 'Continue with Google'}</span>
+              <span className="text-lg font-bold">G</span>
+              <span>{googleLoading ? "Continuing..." : "Continue with Google"}</span>
             </button>
 
-            <div className="mt-4 flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <hr className="flex-1 border-white/10" />
               <span className="text-sm text-slate-400">or</span>
               <hr className="flex-1 border-white/10" />
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            <label className="block text-sm font-medium text-slate-300">
-              Full Name
+            <div>
+              <label className="block text-sm font-medium text-slate-300">Full Name</label>
               <input
                 type="text"
                 value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your full name"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none"
               />
-            </label>
+            </div>
 
-            <label className="block text-sm font-medium text-slate-300">
-              Email
+            <div>
+              <label className="block text-sm font-medium text-slate-300">Email</label>
               <input
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none"
               />
-            </label>
+            </div>
 
-            <label className="block text-sm font-medium text-slate-300">
-              Password
+            <div>
+              <label className="block text-sm font-medium text-slate-300">Password</label>
               <input
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
-                placeholder="Enter your password"
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 6 characters"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none"
               />
-            </label>
+            </div>
 
-            <label className="block text-sm font-medium text-slate-300">
-              Confirm Password
+            <div>
+              <label className="block text-sm font-medium text-slate-300">Confirm Password</label>
               <input
                 type="password"
                 value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your password"
+                onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none"
               />
-            </label>
-
-            {/* Errors shown via toasts */}
+            </div>
 
             <button
-              type="submit"
+              type="button"
+              onClick={handleSignUp}
               disabled={loading}
-              className="w-full rounded-full bg-[#16a34a] px-5 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e] disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-full bg-[#1a5c2a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2db54a] disabled:opacity-70"
             >
               {loading ? "Creating account..." : "Sign Up"}
             </button>
-            </form>
-          </div>
 
-          <p className="mt-6 text-center text-sm text-slate-400">
-            Already have an account?{' '}
-            <a href="/signin" className="font-semibold text-white hover:text-[#16a34a]">
-              Sign In
-            </a>
-          </p>
+            <p className="text-center text-sm text-slate-400">
+              Already have an account?{" "}
+              <Link href="/signin" className="font-semibold text-[#86efac] hover:underline">
+                Sign In
+              </Link>
+            </p>
+          </div>
         </div>
       </main>
     </div>
   );
 }
-
-
-
