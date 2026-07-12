@@ -7,20 +7,20 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Subject = {
-  id: number;
+  id: string;
   name: string;
 };
 
 type Category = {
-  id: number;
-  subject_id: number;
+  id: string;
+  subject_id: string;
   name: string;
 };
 
 export default function AdminCategoriesPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [name, setName] = useState("");
   const [editing, setEditing] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function AdminCategoriesPage() {
 
       setSubjects(subjectsData);
       setCategories(categoriesData);
-      setSelectedSubjectId((prev) => prev ?? subjectsData[0]?.id ?? null);
+      setSelectedSubjectId((prev) => prev || subjectsData[0]?.id || "");
     } catch (err: any) {
       setError(err.message || "Failed to load categories.");
     } finally {
@@ -146,7 +146,7 @@ export default function AdminCategoriesPage() {
         <form onSubmit={handleSubmit} className="grid gap-4 lg:grid-cols-3">
           <label className="space-y-2 text-sm text-slate-200">
             Subject
-            <select value={selectedSubjectId ?? ""} onChange={(event) => setSelectedSubjectId(Number(event.target.value) || null)} className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white">
+            <select value={selectedSubjectId} onChange={(event) => setSelectedSubjectId(event.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white">
               <option value="">Select subject</option>
               {subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>{subject.name}</option>
@@ -200,6 +200,3 @@ export default function AdminCategoriesPage() {
     </div>
   );
 }
-
-
-

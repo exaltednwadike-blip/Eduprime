@@ -7,8 +7,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, ChevronLeft, X, Sun, Moon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const ADMIN_EMAIL = "exaltednwadike@gmail.com";
-
 type Theme = "dark" | "light";
 
 const ThemeContext = createContext({
@@ -37,6 +35,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mounted, setMounted] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const [theme, setTheme] = useState<Theme>("dark");
@@ -55,6 +54,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
       setUser(data.user);
       setAuthChecked(true);
+
+      if (data.user.email) {
+        const { data: adminRow } = await supabase
+          .from("admins")
+          .select("email")
+          .eq("email", data.user.email)
+          .maybeSingle();
+        setIsAdmin(!!adminRow);
+      }
     })();
   }, [router]);
 
@@ -194,7 +202,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   );
                 })}
 
-                {user?.email === ADMIN_EMAIL && (
+                {isAdmin && (
                   <Link
                     href="/admin"
                     className={`mt-2 flex items-center gap-3 rounded-lg border border-white/20 px-3 py-2 text-sm font-medium transition-colors ${
