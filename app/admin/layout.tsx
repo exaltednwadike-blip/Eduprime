@@ -5,27 +5,73 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { AdminShell } from "./AdminShell";
 
-const ADMIN_EMAIL = "exaltednwadike@gmail.com";
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<"checking" | "authorized" | "unauthorized">("checking");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const router = useRouter();
 
+  const checkAdmin = async (email: string | undefined | null) => {
+    if (!email) {
+      setStatus("unauthorized");
+      router.replace("/dashboard");
+      return;
+    }
+
+    const { data: adminRow } = await supabase
+      .from("admins")
+      .select("email")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (!adminRow) {
+      setStatus("unauthorized");
+      router.replace("/dashboard");
+      return;
+    }
+
+    setUserEmail(email);
+    setStatus("authorized");
+  };
+
   useEffect(() => {
-    const checkUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user?.email || data.user.email !== ADMIN_EMAIL) {
-        setStatus("unauthorized");
-        router.replace("/dashboard");
-        return;
+    // First attempt: check whatever session is available right away
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user?.email) {
+        await checkAdmin(data.user.email);
       }
+      // If there's no user yet, don't redirect immediately — the
+      // onAuthStateChange listener below will catch the session
+      // once it finishes rehydrating.
+    })();
 
-      setUserEmail(data.user.email);
-      setStatus("authorized");
+    // Safety net: react to the session actually becoming available,
+    // in case the first getUser() call above ran before it was ready.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user?.email) {
+        checkAdmin(session.user.email);
+      } else if (event === "SIGNED_OUT") {
+        setStatus("unauthorized");
+        router.replace("/signin");
+      }
+    });
+
+    // Final fallback: if nothing has resolved after a few seconds,
+    // stop waiting and treat as unauthorized rather than hanging forever.
+    const timeout = setTimeout(() => {
+      setStatus((current) => {
+        if (current === "checking") {
+          router.replace("/dashboard");
+          return "unauthorized";
+        }
+        return current;
+      });
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
-
-    checkUser();
   }, [router]);
 
   if (status === "checking") {
@@ -44,6 +90,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return <AdminShell userEmail={userEmail!}>{children}</AdminShell>;
 }
-
-
-

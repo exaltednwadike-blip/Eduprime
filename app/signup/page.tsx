@@ -54,7 +54,7 @@ export default function SignupPage() {
       password,
       options: {
         data: { full_name: fullName },
-      },
+      }, 
     });
 
     if (error || !data?.user) {
