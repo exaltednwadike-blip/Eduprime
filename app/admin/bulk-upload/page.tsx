@@ -6,22 +6,9 @@ import { useEffect, useState } from "react";
 import { Download, UploadCloud } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-type Subject = {
-  id: number;
-  name: string;
-};
-
-type Category = {
-  id: number;
-  subject_id: number;
-  name: string;
-};
-
-type Topic = {
-  id: number;
-  category_id: number;
-  name: string;
-};
+type Subject = { id: string; name: string };
+type Category = { id: string; subject_id: string; name: string };
+type Topic = { id: string; category_id: string; name: string };
 
 type ParsedRecord = {
   question: string;
@@ -37,16 +24,9 @@ type ParsedRecord = {
 };
 
 const TEMPLATE_HEADERS = [
-  "question",
-  "type",
-  "answer",
-  "explanation",
-  "option_a",
-  "option_b",
-  "option_c",
-  "option_d",
-  "correct_option",
-  "year",
+  "question", "type", "answer", "explanation",
+  "option_a", "option_b", "option_c", "option_d",
+  "correct_option", "year",
 ];
 
 const parseCsv = (text: string) => {
@@ -54,16 +34,11 @@ const parseCsv = (text: string) => {
     const result: string[] = [];
     let current = "";
     let inQuotes = false;
-
     for (let i = 0; i < row.length; i++) {
       const char = row[i];
       if (char === '"') {
-        if (inQuotes && row[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
+        if (inQuotes && row[i + 1] === '"') { current += '"'; i++; }
+        else inQuotes = !inQuotes;
       } else if (char === ',' && !inQuotes) {
         result.push(current.trim());
         current = "";
@@ -71,36 +46,24 @@ const parseCsv = (text: string) => {
         current += char;
       }
     }
-
     result.push(current.trim());
     return result;
   };
 
   const rows = text.split(/\r?\n/).filter((row) => row.trim().length > 0);
-  if (rows.length === 0) {
-    throw new Error("CSV data is empty.");
-  }
+  if (rows.length === 0) throw new Error("CSV data is empty.");
 
   const [headerRow, ...dataRows] = rows;
-  const headers = headerRow.split(",").map((value) => value.trim());
-  const expectedHeaderLine = TEMPLATE_HEADERS.join(",");
-  const actualHeaderLine = headers.join(",");
-  if (actualHeaderLine !== expectedHeaderLine) {
-    throw new Error(`CSV header row must match exactly: ${expectedHeaderLine}`);
+  const headers = headerRow.split(",").map((v) => v.trim());
+  if (headers.join(",") !== TEMPLATE_HEADERS.join(",")) {
+    throw new Error(`CSV header row must match exactly: ${TEMPLATE_HEADERS.join(",")}`);
   }
 
   return dataRows.map((row, rowIndex) => {
     const values = parseRow(row);
-
-    if (values.length < headers.length) {
-      throw new Error(`Row ${rowIndex + 2} has too few columns.`);
-    }
-
+    if (values.length < headers.length) throw new Error(`Row ${rowIndex + 2} has too few columns.`);
     const record: Record<string, string | null> = {};
-    headers.forEach((header, index) => {
-      record[header] = values[index] ?? null;
-    });
-
+    headers.forEach((header, index) => { record[header] = values[index] ?? null; });
     return {
       question: record.question ?? null,
       type: record.type ?? null,
@@ -116,35 +79,20 @@ const parseCsv = (text: string) => {
   });
 };
 
-const parsePayload = (records: Array<Record<string, string | null>>, topicId: number) => {
+const parsePayload = (records: Array<Record<string, string | null>>, topicId: string) => {
   return records.map((record, index) => {
-    const rawType = (record.type || "").trim();
-    const type = rawType.toLowerCase();
-
-    if (type !== "mcq" && type !== "theory") {
-      throw new Error(`Row ${index + 2}: type must be MCQ or Theory.`);
-    }
-    if (!record.question?.trim()) {
-      throw new Error(`Row ${index + 2}: question is required.`);
-    }
-    if (!record.answer?.trim()) {
-      throw new Error(`Row ${index + 2}: answer is required.`);
-    }
+    const type = (record.type || "").trim().toLowerCase();
+    if (type !== "mcq" && type !== "theory") throw new Error(`Row ${index + 2}: type must be MCQ or Theory.`);
+    if (!record.question?.trim()) throw new Error(`Row ${index + 2}: question is required.`);
+    if (!record.answer?.trim()) throw new Error(`Row ${index + 2}: answer is required.`);
 
     let normalizedCorrect: number | null = null;
-
     if (type === "mcq") {
-      ["option_a", "option_b", "option_c", "option_d"].forEach((option) => {
-        if (!record[option]?.trim()) {
-          throw new Error(`Row ${index + 2}: ${option} is required for MCQ questions.`);
-        }
+      ["option_a", "option_b", "option_c", "option_d"].forEach((opt) => {
+        if (!record[opt]?.trim()) throw new Error(`Row ${index + 2}: ${opt} is required for MCQ.`);
       });
-
       const rawCorrect = record.correct_option?.trim();
-      if (!rawCorrect) {
-        throw new Error(`Row ${index + 2}: correct_option is required for MCQ questions.`);
-      }
-
+      if (!rawCorrect) throw new Error(`Row ${index + 2}: correct_option is required for MCQ.`);
       if (/^[A-D]$/i.test(rawCorrect)) {
         normalizedCorrect = ["A", "B", "C", "D"].indexOf(rawCorrect.toUpperCase());
       } else if (/^[0-3]$/.test(rawCorrect)) {
@@ -176,9 +124,9 @@ export default function AdminBulkUploadPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [selectedTopicId, setSelectedTopicId] = useState<string>("");
   const [lookupLoading, setLookupLoading] = useState(true);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -190,95 +138,84 @@ export default function AdminBulkUploadPage() {
     const fetchLookups = async () => {
       setLookupLoading(true);
       setLookupError(null);
-
       try {
         const [subjectsRes, categoriesRes, topicsRes] = await Promise.all([
-          supabase.from("subjects").select("id, name").order("name", { ascending: true }),
-          supabase.from("categories").select("id, subject_id, name").order("name", { ascending: true }),
-          supabase.from("topics").select("id, category_id, name").order("name", { ascending: true }),
+          supabase.from("subjects").select("id, name").order("name"),
+          supabase.from("categories").select("id, subject_id, name").order("name"),
+          supabase.from("topics").select("id, category_id, name").order("name"),
         ]);
-
         if (subjectsRes.error) throw new Error(subjectsRes.error.message);
         if (categoriesRes.error) throw new Error(categoriesRes.error.message);
         if (topicsRes.error) throw new Error(topicsRes.error.message);
 
-        const subjectsData = subjectsRes.data ?? [];
-        const categoriesData = categoriesRes.data ?? [];
-        const topicsData = topicsRes.data ?? [];
+        setSubjects(subjectsRes.data ?? []);
+        setCategories(categoriesRes.data ?? []);
+        setTopics(topicsRes.data ?? []);
 
-        setSubjects(subjectsData);
-        setCategories(categoriesData);
-        setTopics(topicsData);
-        setSelectedSubjectId(subjectsData[0]?.id ?? null);
-        setSelectedCategoryId(categoriesData.find((category) => category.subject_id === subjectsData[0]?.id)?.id ?? null);
-        setSelectedTopicId(
-          topicsData.find(
-            (topic) => topic.category_id === categoriesData.find((category) => category.subject_id === subjectsData[0]?.id)?.id
-          )?.id ?? null
-        );
+        const firstSubject = subjectsRes.data?.[0];
+        if (firstSubject) {
+          setSelectedSubjectId(firstSubject.id);
+          const firstCategory = categoriesRes.data?.find(c => c.subject_id === firstSubject.id);
+          if (firstCategory) {
+            setSelectedCategoryId(firstCategory.id);
+            const firstTopic = topicsRes.data?.find(t => t.category_id === firstCategory.id);
+            if (firstTopic) setSelectedTopicId(firstTopic.id);
+          }
+        }
       } catch (err: any) {
-        setLookupError(err.message || "Failed to load subjects, categories, and topics.");
+        setLookupError(err.message || "Failed to load data.");
       } finally {
         setLookupLoading(false);
       }
     };
-
     fetchLookups();
   }, []);
 
-  useEffect(() => {
-    if (!selectedSubjectId) {
-      setSelectedCategoryId(null);
-      setSelectedTopicId(null);
-      return;
+  const handleSubjectChange = (subjectId: string) => {
+    setSelectedSubjectId(subjectId);
+    setSelectedCategoryId("");
+    setSelectedTopicId("");
+    const firstCategory = categories.find(c => c.subject_id === subjectId);
+    if (firstCategory) {
+      setSelectedCategoryId(firstCategory.id);
+      const firstTopic = topics.find(t => t.category_id === firstCategory.id);
+      if (firstTopic) setSelectedTopicId(firstTopic.id);
     }
+  };
 
-    const nextCategory = categories.find((category) => category.subject_id === selectedSubjectId);
-    setSelectedCategoryId(nextCategory?.id ?? null);
-  }, [selectedSubjectId, categories]);
-
-  useEffect(() => {
-    if (!selectedCategoryId) {
-      setSelectedTopicId(null);
-      return;
-    }
-
-    const nextTopic = topics.find((topic) => topic.category_id === selectedCategoryId);
-    setSelectedTopicId(nextTopic?.id ?? null);
-  }, [selectedCategoryId, topics]);
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedTopicId("");
+    const firstTopic = topics.find(t => t.category_id === categoryId);
+    if (firstTopic) setSelectedTopicId(firstTopic.id);
+  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     setFileName(file.name);
     setError(null);
     setMessage(null);
-
     try {
       const text = await file.text();
       setCsvText(text);
       setPreviewRecords([]);
-      setMessage(`${file.name} loaded. Click Preview Parsed Rows to validate.`);
-    } catch (err: any) {
+      setMessage(`${file.name} loaded. Click Preview to validate.`);
+    } catch {
       setError("Unable to read the selected CSV file.");
       setFileName(null);
     }
   };
 
   const handleParse = () => {
-    if (!selectedTopicId) {
-      setError("Please select a topic before previewing questions.");
-      return;
-    }
-
+    if (!selectedTopicId) { setError("Please select a topic first."); return; }
     try {
       setError(null);
       setMessage(null);
       const records = parseCsv(csvText);
       const payload = parsePayload(records, selectedTopicId);
       setPreviewRecords(payload);
-      setMessage(`Parsed ${payload.length} row(s). Review below and then upload.`);
+      setMessage(`Parsed ${payload.length} row(s). Review below and upload.`);
     } catch (err: any) {
       setPreviewRecords([]);
       setError(err.message || "Failed to parse CSV.");
@@ -286,28 +223,21 @@ export default function AdminBulkUploadPage() {
   };
 
   const handleUpload = async () => {
-    if (!selectedTopicId) {
-      setError("Please select a topic before uploading questions.");
-      return;
-    }
-
+    if (!selectedTopicId) { setError("Please select a topic first."); return; }
     try {
       setError(null);
       setMessage(null);
       setLoading(true);
       const records = parseCsv(csvText);
       const payload = parsePayload(records, selectedTopicId);
-
       const { error: uploadError } = await supabase.from("questions").insert(payload);
-      if (uploadError) {
-        throw new Error(uploadError.message);
-      }
-
+      if (uploadError) throw new Error(uploadError.message);
       setMessage(`Successfully uploaded ${payload.length} questions.`);
       setCsvText("");
       setPreviewRecords([]);
+      setFileName(null);
     } catch (err: any) {
-      setError(err.message || "Upload failed. Please review your CSV.");
+      setError(err.message || "Upload failed.");
     } finally {
       setLoading(false);
     }
@@ -326,202 +256,178 @@ export default function AdminBulkUploadPage() {
     URL.revokeObjectURL(url);
   };
 
-  const filteredCategories = categories.filter((category) => category.subject_id === selectedSubjectId);
-  const filteredTopics = topics.filter((topic) => topic.category_id === selectedCategoryId);
+  const filteredCategories = categories.filter(c => c.subject_id === selectedSubjectId);
+  const filteredTopics = topics.filter(t => t.category_id === selectedCategoryId);
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-[#064e23] p-6 sm:p-8">
+    <div className="space-y-6 p-4 sm:p-6">
+      {/* Header */}
+      <div className="rounded-xl border border-white/10 bg-[#064e23] p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold">Bulk Upload Questions</h1>
-            <p className="mt-2 text-slate-400">Select a topic first, then upload questions for that topic.</p>
+            <h1 className="text-xl font-bold text-white sm:text-2xl">Bulk Upload Questions</h1>
+            <p className="mt-1 text-sm text-slate-400">Select a topic first, then upload questions.</p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 text-[#052e16]">
-            <UploadCloud size={18} /> CSV Upload
+          <div className="inline-flex items-center gap-2 rounded-lg bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white">
+            <UploadCloud size={16} /> CSV Upload
           </div>
         </div>
       </div>
 
-      <div className="rounded-3xl bg-[#064e23] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+      {/* Selection */}
+      <div className="rounded-xl bg-[#064e23] p-4 sm:p-6">
         {lookupLoading ? (
-          <div className="text-slate-300">Loading subjects, categories, and topics...</div>
+          <p className="text-sm text-slate-300">Loading...</p>
         ) : lookupError ? (
-          <div className="rounded-3xl bg-rose-500/10 p-4 text-rose-200">{lookupError}</div>
-        ) : subjects.length === 0 || categories.length === 0 || topics.length === 0 ? (
-          <div className="rounded-3xl bg-emerald-500/10 p-6 text-emerald-100">
-            Please add subjects, categories and topics first.
-          </div>
+          <p className="text-sm text-red-400">{lookupError}</p>
+        ) : subjects.length === 0 ? (
+          <p className="text-sm text-slate-300">Please add subjects, categories and topics first.</p>
         ) : (
-          <div className="grid gap-4 md:grid-cols-3 mb-6">
-            <label className="space-y-2 text-sm text-slate-200">
-              Select Subject
+          <div className="grid gap-4 sm:grid-cols-3">
+            {/* Subject */}
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Select Subject</label>
               <select
-                value={selectedSubjectId ?? ""}
-                onChange={(event) => setSelectedSubjectId(Number(event.target.value) || null)}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white"
+                value={selectedSubjectId}
+                onChange={(e) => handleSubjectChange(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white focus:border-[#16a34a] focus:outline-none"
               >
                 <option value="">Select subject</option>
-                {subjects.map((subject) => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
-            </label>
+            </div>
 
-            {selectedSubjectId && (
-              <label className="space-y-2 text-sm text-slate-200">
-                Select Category
-                <select
-                  value={selectedCategoryId ?? ""}
-                  onChange={(event) => setSelectedCategoryId(Number(event.target.value) || null)}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white"
-                >
-                  <option value="">Select category</option>
-                  {filteredCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            {/* Category */}
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Select Category</label>
+              <select
+                value={selectedCategoryId}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                disabled={!selectedSubjectId}
+                className="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white focus:border-[#16a34a] focus:outline-none disabled:opacity-50"
+              >
+                <option value="">Select category</option>
+                {filteredCategories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
 
-            {selectedCategoryId && (
-              <label className="space-y-2 text-sm text-slate-200">
-                Select Topic
-                <select
-                  value={selectedTopicId ?? ""}
-                  onChange={(event) => setSelectedTopicId(Number(event.target.value) || null)}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white"
-                >
-                  <option value="">Select topic</option>
-                  {filteredTopics.map((topic) => (
-                    <option key={topic.id} value={topic.id}>
-                      {topic.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            {/* Topic */}
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Select Topic</label>
+              <select
+                value={selectedTopicId}
+                onChange={(e) => setSelectedTopicId(e.target.value)}
+                disabled={!selectedCategoryId}
+                className="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white focus:border-[#16a34a] focus:outline-none disabled:opacity-50"
+              >
+                <option value="">Select topic</option>
+                {filteredTopics.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
+      </div>
 
-        {selectedTopicId && (
-          <>
-            <div className="mb-5 grid gap-4 sm:grid-cols-2 sm:items-center">
-              <div>
-                <p className="text-sm text-slate-400">Expected headers:</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {TEMPLATE_HEADERS.map((header) => (
-                    <span key={header} className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
-                      {header}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-3 text-sm text-slate-400">Columns must be in this order: question, type, answer, explanation, option_a, option_b, option_c, option_d, correct_option, year.</p>
-                <p className="text-sm text-slate-400">correct_option accepts A/B/C/D or 0/1/2/3 and type accepts MCQ or Theory.</p>
-              </div>
-              <div className="rounded-3xl bg-slate-900/70 p-4 text-sm text-slate-300">
-                Example: What is 2+2?,MCQ,4,Understanding the basics,2,3,4,5,A,2025
-              </div>
+      {/* Upload section - only show when topic selected */}
+      {selectedTopicId && (
+        <div className="rounded-xl bg-[#064e23] p-4 sm:p-6 space-y-4">
+          {/* Template info */}
+          <div className="rounded-lg bg-slate-900/50 p-4">
+            <p className="text-xs font-medium text-slate-400 mb-2">Expected CSV format:</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {TEMPLATE_HEADERS.map((h) => (
+                <span key={h} className="rounded-md bg-white/5 px-2 py-0.5 text-xs text-slate-300">{h}</span>
+              ))}
             </div>
+            <p className="text-xs text-slate-400">correct_option: A/B/C/D or 0/1/2/3 — type: MCQ or Theory</p>
+          </div>
 
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={handleDownloadTemplate}
-                className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
-              >
-                <Download size={16} /> Download CSV Template
-              </button>
-              <button
-                type="button"
-                onClick={() => setCsvText(TEMPLATE_HEADERS.join(",") + "\nWhat is 2+2?,MCQ,4,Understanding the basics,2,3,4,5,A,2025")}
-                className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
-              >
-                Fill Example Row
-              </button>
-              <button
-                type="button"
-                onClick={handleParse}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-600"
-              >
-                Preview Parsed Rows
-              </button>
-            </div>
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleDownloadTemplate}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10 transition"
+            >
+              <Download size={14} /> Download Template
+            </button>
+            <button
+              onClick={() => setCsvText(TEMPLATE_HEADERS.join(",") + "\nWhat is 2+2?,MCQ,4,Understanding the basics,2,3,4,5,A,2025")}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10 transition"
+            >
+              Fill Example
+            </button>
+            <button
+              onClick={handleParse}
+              className="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm text-white hover:bg-slate-600 transition"
+            >
+              Preview Rows
+            </button>
+          </div>
 
-            <div className="grid gap-4">
-              <label className="space-y-2 text-sm text-slate-200">
-                Upload CSV File
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={handleFileChange}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white file:rounded-full file:border-0 file:bg-[#16a34a] file:px-4 file:py-2 file:text-white file:font-semibold"
-                />
-              </label>
-              {fileName && <div className="text-sm text-slate-300">Loaded file: {fileName}</div>}
-            </div>
+          {/* File upload */}
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Upload CSV File</label>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleFileChange}
+              className="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white file:rounded-lg file:border-0 file:bg-[#16a34a] file:px-3 file:py-1 file:text-xs file:text-white file:font-semibold file:mr-3"
+            />
+            {fileName && <p className="mt-1 text-xs text-slate-400">Loaded: {fileName}</p>}
+          </div>
 
+          {/* Paste area */}
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Or paste CSV here</label>
             <textarea
               value={csvText}
-              onChange={(event) => setCsvText(event.target.value)}
-              placeholder="Paste CSV rows here"
-              className="min-h-[280px] w-full rounded-3xl border border-white/10 bg-slate-950/80 px-4 py-4 text-sm text-white"
+              onChange={(e) => setCsvText(e.target.value)}
+              placeholder="Paste CSV rows here..."
+              className="min-h-[200px] w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none"
             />
+          </div>
 
-            {message && <div className="mt-4 rounded-2xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{message}</div>}
-            {error && <div className="mt-4 rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</div>}
+          {/* Messages */}
+          {message && <p className="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{message}</p>}
+          {error && <p className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
 
-            {previewRecords.length > 0 && (
-              <div className="mt-6 overflow-x-auto rounded-3xl border border-white/10 bg-[#053219] p-4">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold text-white">Preview {previewRecords.length} row(s)</h2>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewRecords([])}
-                    className="rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
-                  >
-                    Clear Preview
-                  </button>
-                </div>
-                <div className="grid gap-3">
-                  {previewRecords.map((record, index) => (
-                    <div key={index} className="rounded-3xl bg-[#065f2c] p-4 text-sm text-slate-200">
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <div>Type: {record.type}</div>
-                        <div>Correct Option: {record.correct_option ?? "N/A"}</div>
-                        <div>Year: {record.year ?? "N/A"}</div>
-                      </div>
-                      <div className="mt-3 text-white">
-                        <div className="font-semibold">Question</div>
-                        <div>{record.question}</div>
-                      </div>
-                      <div className="mt-3 text-slate-300">
-                        <div className="font-semibold">Answer</div>
-                        <div>{record.answer}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* Preview */}
+          {previewRecords.length > 0 && (
+            <div className="rounded-lg border border-white/10 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                <h3 className="text-sm font-semibold text-white">Preview — {previewRecords.length} row(s)</h3>
+                <button onClick={() => setPreviewRecords([])} className="text-xs text-slate-400 hover:text-white">Clear</button>
               </div>
-            )}
+              <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
+                {previewRecords.map((record, index) => (
+                  <div key={index} className="px-4 py-3 text-sm">
+                    <p className="font-medium text-white truncate">{record.question}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {record.type?.toUpperCase()} — Answer: {record.answer} — Year: {record.year ?? "N/A"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-            <button
-              onClick={handleUpload}
-              disabled={loading}
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-5 py-3 font-semibold text-[#052e16] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <UploadCloud size={18} /> {loading ? "Uploading..." : "Upload Questions"}
-            </button>
-          </>
-        )}
-      </div>
+          {/* Upload button */}
+          <button
+            onClick={handleUpload}
+            disabled={loading || !csvText.trim()}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#16a34a] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#22c55e] transition disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <UploadCloud size={16} />
+            {loading ? "Uploading..." : "Upload Questions"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
-
-
-
