@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { ToastProvider } from "@/components/ToastContext";
@@ -21,7 +21,7 @@ export function useTheme() {
 const sidebarItems = [
   { key: "home", label: "Home", href: "/dashboard", icon: Home },
   { key: "study-hub", label: "Study Hub", href: "/dashboard/study-hub", icon: BookOpen },
-  { key: "cbt", label: "CBT Simulator", href: "/dashboard/cbt", icon: Monitor },
+  { key: "cbt", label: "CBT Simulator", href: "/dashboard/cbt", icon: Monitor },`n  { key: "flashcards", label: "Flashcards", href: "/dashboard/flashcards", icon: BookMarked },
   { key: "leaderboard", label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy },
   { key: "progress", label: "Progress", href: "/dashboard/progress", icon: BarChart2 },
   { key: "notifications", label: "Notifications", href: "/dashboard/notifications", icon: BellIcon },
