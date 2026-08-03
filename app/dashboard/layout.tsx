@@ -1,11 +1,13 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { ToastProvider } from "@/components/ToastContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, ChevronLeft, X, Sun, Moon } from "lucide-react";
+import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, ChevronLeft, Sun, Moon, BookMarked } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+
+const ADMIN_EMAIL = "exaltednwadike@gmail.com";
 
 type Theme = "dark" | "light";
 
@@ -21,7 +23,8 @@ export function useTheme() {
 const sidebarItems = [
   { key: "home", label: "Home", href: "/dashboard", icon: Home },
   { key: "study-hub", label: "Study Hub", href: "/dashboard/study-hub", icon: BookOpen },
-  { key: "cbt", label: "CBT Simulator", href: "/dashboard/cbt", icon: Monitor },`n  { key: "flashcards", label: "Flashcards", href: "/dashboard/flashcards", icon: BookMarked },
+  { key: "cbt", label: "CBT Simulator", href: "/dashboard/cbt", icon: Monitor },
+  { key: "flashcards", label: "Flashcards", href: "/dashboard/flashcards", icon: BookMarked },
   { key: "leaderboard", label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy },
   { key: "progress", label: "Progress", href: "/dashboard/progress", icon: BarChart2 },
   { key: "notifications", label: "Notifications", href: "/dashboard/notifications", icon: BellIcon },
@@ -31,7 +34,6 @@ const sidebarItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -44,6 +46,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const stored = localStorage.getItem("eduprimeTheme");
     if (stored === "light" || stored === "dark") setTheme(stored);
     setMounted(true);
+    if (window.innerWidth < 768) setCollapsed(true);
 
     (async () => {
       const { data } = await supabase.auth.getUser();
@@ -53,16 +56,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
       setUser(data.user);
+      const { data: adminData } = await supabase
+        .from("admins")
+        .select("email")
+        .eq("email", data.user.email)
+        .single();
+      setIsAdmin(!!adminData);
       setAuthChecked(true);
-
-      if (data.user.email) {
-        const { data: adminRow } = await supabase
-          .from("admins")
-          .select("email")
-          .eq("email", data.user.email)
-          .maybeSingle();
-        setIsAdmin(!!adminRow);
-      }
     })();
   }, [router]);
 
@@ -82,27 +82,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     localStorage.setItem("eduprimeTheme", theme);
   }, [theme]);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileOpen]);
-
   const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   const value = useMemo(() => ({ theme, toggle }), [theme]);
-
-  const handleSidebarToggle = () => {
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setMobileOpen((o) => !o);
-    } else {
-      setCollapsed((c) => !c);
-    }
-  };
 
   const getInitials = (name?: string | null, email?: string | null) => {
     if (name) {
@@ -123,6 +104,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       "/dashboard": "Dashboard",
       "/dashboard/study-hub": "Study Hub",
       "/dashboard/cbt": "CBT Simulator",
+      "/dashboard/flashcards": "Flashcards",
       "/dashboard/leaderboard": "Leaderboard",
       "/dashboard/progress": "Progress",
       "/dashboard/notifications": "Notifications",
@@ -153,38 +135,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <ToastProvider>
         <div className={`min-h-screen ${shellBg} ${shellText}`}>
           <div className="flex">
-
-            {mobileOpen && (
-              <div
-                onClick={() => setMobileOpen(false)}
-                className="fixed inset-0 z-30 bg-black/60 md:hidden"
-                aria-hidden="true"
-              />
-            )}
-
             <aside
-              className={`fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-shrink-0 flex-col transition-transform duration-200 md:sticky md:top-0 md:z-20 md:translate-x-0 md:transition-all ${
-                mobileOpen ? "translate-x-0" : "-translate-x-full"
-              } ${collapsed ? "md:w-14" : "md:w-56"}`}
+              className={`sticky top-0 z-20 flex h-screen flex-shrink-0 flex-col transition-all duration-200 ${collapsed ? "w-14" : "w-56"}`}
               style={{ background: "#0f2914" }}
             >
-              <div className={`flex h-16 items-center justify-between border-b border-white/10 px-3 ${collapsed ? "md:justify-center" : ""}`}>
-                <img src="/logo.png" alt="EduPrime" className={`h-9 w-auto ${collapsed ? "md:hidden" : ""}`} />
+              <div className={`flex h-16 items-center border-b border-white/10 px-3 ${collapsed ? "justify-center" : "justify-between"}`}>
+                {!collapsed && (
+                  <img src="/logo.png" alt="EduPrime" className="h-9 w-auto" />
+                )}
                 <button
                   onClick={() => setCollapsed((c) => !c)}
-                  className="hidden rounded-lg p-1.5 text-white/70 hover:bg-white/10 md:block"
+                  className="rounded-lg p-1.5 text-white/70 hover:bg-white/10"
                 >
                   {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
                 </button>
-                <button
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-lg p-1.5 text-white/70 hover:bg-white/10 md:hidden"
-                >
-                  <X size={18} />
-                </button>
               </div>
 
-              <nav className="mt-3 flex-1 space-y-0.5 overflow-y-auto px-2">
+              <nav className="mt-3 flex-1 space-y-0.5 px-2 overflow-y-auto">
                 {sidebarItems.map((item) => {
                   const active = pathname === item.href || pathname?.startsWith(item.href + "/");
                   const Icon = item.icon;
@@ -192,12 +159,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Link
                       key={item.key}
                       href={item.href}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        collapsed ? "md:justify-center md:gap-0" : ""
+                      className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        collapsed ? "justify-center" : "gap-3"
                       } ${active ? "bg-[#2db54a] text-white font-semibold" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
                     >
-                      <Icon size={18} className="flex-shrink-0" />
-                      <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{item.label}</span>
+                      <Icon size={18} />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
                     </Link>
                   );
                 })}
@@ -205,35 +172,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {isAdmin && (
                   <Link
                     href="/admin"
-                    className={`mt-2 flex items-center gap-3 rounded-lg border border-white/20 px-3 py-2 text-sm font-medium transition-colors ${
-                      collapsed ? "md:justify-center md:gap-0" : ""
+                    className={`mt-2 flex items-center rounded-lg border border-white/20 px-3 py-2 text-sm font-medium transition-colors ${
+                      collapsed ? "justify-center" : "gap-3"
                     } ${pathname?.startsWith("/admin") ? "bg-[#2db54a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
                   >
-                    <ShieldAlert size={18} className="flex-shrink-0" />
-                    <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>Admin Panel</span>
+                    <ShieldAlert size={18} />
+                    {!collapsed && <span className="truncate">Admin Panel</span>}
                   </Link>
                 )}
               </nav>
 
-              <div className="border-t border-white/10 p-3">
-                <Link href="/dashboard/profile" className={`flex items-center gap-3 rounded-lg p-2 hover:bg-white/10 transition ${collapsed ? "md:justify-center" : ""}`}>
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#2db54a] text-xs font-bold text-white">
-                    {getInitials(user?.user_metadata?.full_name, user?.email)}
-                  </div>
-                  <div className={`min-w-0 ${collapsed ? "md:hidden" : ""}`}>
-                    <p className="truncate text-sm font-semibold text-white capitalize">
-                      {getFirstName(user?.user_metadata?.full_name, user?.email)}
-                    </p>
-                    <p className="text-xs text-white/50">View Profile</p>
-                  </div>
-                </Link>
-              </div>
+              {!collapsed && (
+                <div className="border-t border-white/10 p-3">
+                  <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-lg p-2 hover:bg-white/10 transition">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#2db54a] text-xs font-bold text-white">
+                      {getInitials(user?.user_metadata?.full_name, user?.email)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-white capitalize">
+                        {getFirstName(user?.user_metadata?.full_name, user?.email)}
+                      </p>
+                      <p className="text-xs text-white/50">View Profile</p>
+                    </div>
+                  </Link>
+                </div>
+              )}
+
+              {collapsed && (
+                <div className="border-t border-white/10 p-2">
+                  <Link href="/dashboard/profile" className="flex justify-center rounded-lg p-2 hover:bg-white/10">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2db54a] text-xs font-bold text-white">
+                      {getInitials(user?.user_metadata?.full_name, user?.email)}
+                    </div>
+                  </Link>
+                </div>
+              )}
             </aside>
 
             <div className="flex min-h-screen flex-1 flex-col overflow-hidden">
               <header className={`flex h-14 flex-shrink-0 items-center justify-between border-b px-4 sm:px-6 ${navBg} ${navBorder}`}>
                 <div className="flex items-center gap-3">
-                  <button onClick={handleSidebarToggle} className={`rounded-lg p-1.5 ${navIcon}`}>
+                  <button onClick={() => setCollapsed((c) => !c)} className={`rounded-lg p-1.5 ${navIcon}`}>
                     <Menu size={18} />
                   </button>
                   <h2 className={`text-base font-semibold ${navTitle}`}>{pageTitle}</h2>
@@ -243,11 +222,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <button onClick={toggle} className={`rounded-lg p-1.5 ${navIcon}`} title="Toggle theme">
                     {isDark ? <Sun size={18} /> : <Moon size={18} />}
                   </button>
-
                   <button className={`relative rounded-lg p-1.5 ${navIcon}`}>
                     <BellIcon size={18} />
                   </button>
-
                   <Link href="/dashboard/profile" className="flex items-center gap-1.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a5c2a] text-xs font-bold text-white">
                       {getInitials(user?.user_metadata?.full_name, user?.email)}
@@ -259,7 +236,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               </header>
 
-              <main className={`flex-1 overflow-auto p-4 sm:p-6 ${isDark ? "bg-[#0a1f0f]" : "bg-[#f9fafb]"}`}>
+              <main className={`flex-1 overflow-auto ${isDark ? "bg-[#0a1f0f]" : "bg-[#f9fafb]"}`}>
                 {children}
               </main>
             </div>
