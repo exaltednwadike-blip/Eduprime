@@ -66,12 +66,12 @@ export default function AdminQuestionsPage() {
 
   useEffect(() => {
     if (selectedSubjectId) {
-      const nextCategory = categories.find((category) => category.subject_id === selectedSubjectId);
+      const nextCategory = categories.find((category: any) => category.subject_id === selectedSubjectId);
       if (!nextCategory) {
         setSelectedCategoryId(null);
         setSelectedTopicId(null);
         setQuestions([]);
-      } else if (!selectedCategoryId || categories.find((cat) => cat.id === selectedCategoryId)?.subject_id !== selectedSubjectId) {
+      } else if (!selectedCategoryId || categories.find((cat: any) => cat.id === selectedCategoryId)?.subject_id !== selectedSubjectId) {
         setSelectedCategoryId(nextCategory.id);
       }
     }
@@ -79,11 +79,11 @@ export default function AdminQuestionsPage() {
 
   useEffect(() => {
     if (selectedCategoryId) {
-      const nextTopic = topics.find((topic) => topic.category_id === selectedCategoryId);
+      const nextTopic = topics.find((topic: any) => topic.category_id === selectedCategoryId);
       if (!nextTopic) {
         setSelectedTopicId(null);
         setQuestions([]);
-      } else if (!selectedTopicId || topics.find((topic) => topic.id === selectedTopicId)?.category_id !== selectedCategoryId) {
+      } else if (!selectedTopicId || topics.find((topic: any) => topic.id === selectedTopicId)?.category_id !== selectedCategoryId) {
         setSelectedTopicId(nextTopic.id);
       }
     }
@@ -120,8 +120,8 @@ export default function AdminQuestionsPage() {
       setCategories(categoriesData);
       setTopics(topicsData);
       setSelectedSubjectId(subjectsData[0]?.id || null);
-  setSelectedCategoryId(categoriesData.find((category) => category.subject_id === subjectsData[0]?.id)?.id || null);
-setSelectedTopicId(topicsData.find((topic) => topic.category_id === categoriesData.find((category) => category.subject_id === subjectsData[0]?.id)?.id)?.id || null);
+  setSelectedCategoryId(categoriesData.find((category: any) => category.subject_id === subjectsData[0]?.id)?.id || null);
+setSelectedTopicId(topicsData.find((topic: any) => topic.category_id === categoriesData.find((category: any) => category.subject_id === subjectsData[0]?.id)?.id)?.id || null);
     } catch (err: any) {
       setError(err.message || "Failed to load lookup data.");
     } finally {
@@ -173,10 +173,10 @@ setSelectedTopicId(topicsData.find((topic) => topic.category_id === categoriesDa
     setCorrectOption(question.correct_option ?? "0");
     setYear(question.year?.toString() ?? "");
     setSelectedTopicId(question.topic_id);
-    const topic = topics.find((topic) => topic.id === question.topic_id);
+    const topic = topics.find((topic: any) => topic.id === question.topic_id);
     if (topic) {
       setSelectedCategoryId(topic.category_id);
-      const category = categories.find((category) => category.id === topic.category_id);
+      const category = categories.find((category: any) => category.id === topic.category_id);
       if (category) {
         setSelectedSubjectId(category.subject_id);
       }
@@ -387,9 +387,9 @@ setSelectedTopicId(topicsData.find((topic) => topic.category_id === categoriesDa
 
       <div className="grid gap-4">
         {questions.map((question) => {
-          const topic = topics.find((topic) => topic.id === question.topic_id);
-          const category = categories.find((category) => category.id === topic?.category_id);
-          const subject = subjects.find((subject) => subject.id === category?.subject_id);
+          const topic = topics.find((topic: any) => topic.id === question.topic_id);
+          const category = categories.find((category: any) => category.id === topic?.category_id);
+          const subject = subjects.find((subject: any) => subject.id === category?.subject_id);
 
           return (
             <div key={question.id} className="rounded-3xl bg-[#065f2c] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
