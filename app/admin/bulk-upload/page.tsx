@@ -155,10 +155,10 @@ export default function AdminBulkUploadPage() {
         const firstSubject = subjectsRes.data?.[0];
         if (firstSubject) {
           setSelectedSubjectId(firstSubject.id);
-          const firstCategory = categoriesRes.data?.find(c => c.subject_id === firstSubject.id);
+          const firstCategory = categoriesRes.data?.find((c: Category) => c.subject_id === firstSubject.id);
           if (firstCategory) {
             setSelectedCategoryId(firstCategory.id);
-            const firstTopic = topicsRes.data?.find(t => t.category_id === firstCategory.id);
+            const firstTopic = topicsRes.data?.find((t: Topic) => t.category_id === firstCategory.id);
             if (firstTopic) setSelectedTopicId(firstTopic.id);
           }
         }
@@ -175,10 +175,10 @@ export default function AdminBulkUploadPage() {
     setSelectedSubjectId(subjectId);
     setSelectedCategoryId("");
     setSelectedTopicId("");
-    const firstCategory = categories.find(c => c.subject_id === subjectId);
+    const firstCategory = categories.find((c: Category) => c.subject_id === subjectId);
     if (firstCategory) {
       setSelectedCategoryId(firstCategory.id);
-      const firstTopic = topics.find(t => t.category_id === firstCategory.id);
+      const firstTopic = topics.find((t: Topic) => t.category_id === firstCategory.id);
       if (firstTopic) setSelectedTopicId(firstTopic.id);
     }
   };
@@ -186,7 +186,7 @@ export default function AdminBulkUploadPage() {
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
     setSelectedTopicId("");
-    const firstTopic = topics.find(t => t.category_id === categoryId);
+    const firstTopic = topics.find((t: Topic) => t.category_id === categoryId);
     if (firstTopic) setSelectedTopicId(firstTopic.id);
   };
 
