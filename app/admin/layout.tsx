@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (data.user?.email) {
         await checkAdmin(data.user.email);
       }
-      // If there's no user yet, don't redirect immediately — the
+      // If there's no user yet, don't redirect immediately - the
       // onAuthStateChange listener below will catch the session
       // once it finishes rehydrating.
     })();
