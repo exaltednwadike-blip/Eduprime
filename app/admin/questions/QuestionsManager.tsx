@@ -117,7 +117,7 @@ export default function QuestionsManager({ initialSubjects, initialQuestions }: 
       supabase.from("subjects").select("id, name"),
     ]);
 
-    const subjectMap = new Map(subjectRes.data?.map((subject) => [subject.id, subject.name]));
+    const subjectMap = new Map(subjectRes.data?.map((subject: any) => [subject.id, subject.name]));
     if (questionRes.data) {
       setQuestions(
         questionRes.data.map((question) => ({
