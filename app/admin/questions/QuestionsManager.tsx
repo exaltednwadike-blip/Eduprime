@@ -118,9 +118,9 @@ export default function QuestionsManager({ initialSubjects, initialQuestions }: 
     ]);
 
     const subjectMap = new Map(subjectRes.data?.map((subject: any) => [subject.id, subject.name]));
-    if (questionRes.data) {
+      if (questionRes.data) {
       setQuestions(
-        questionRes.data.map((question) => ({
+        questionRes.data.map((question: any) => ({
           ...question,
           subject_name: subjectMap.get(question.subject_id) ?? "Unknown",
         }))
