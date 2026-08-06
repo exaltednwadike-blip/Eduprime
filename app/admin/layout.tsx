@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     // Safety net: react to the session actually becoming available,
     // in case the first getUser() call above ran before it was ready.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
       if (session?.user?.email) {
         checkAdmin(session.user.email);
       } else if (event === "SIGNED_OUT") {
