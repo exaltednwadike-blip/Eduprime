@@ -180,7 +180,7 @@ export default function AdminCategoriesPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-white">{category.name}</h2>
-                <p className="mt-2 text-slate-400">Subject: {subjects.find((subject) => subject.id === category.subject_id)?.name ?? "Unknown"}</p>
+                <p className="mt-2 text-slate-400">Subject: {subjects.find((subject: any) => subject.id === category.subject_id)?.name ?? "Unknown"}</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <button onClick={() => handleEdit(category)} className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10">
