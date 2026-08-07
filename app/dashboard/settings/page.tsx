@@ -43,12 +43,16 @@ export default function SettingsPage() {
     }
 
     setSavingName(true);
-    const { error } = await supabase.auth.updateUser({ data: { full_name: trimmed } });
+    const { data: updatedUser, error } = await supabase.auth.updateUser({ data: { full_name: trimmed } });
     setSavingName(false);
 
     if (error) {
       showToast({ type: "error", title: "Couldn't save", message: "Something went wrong updating your name." });
       return;
+    }
+
+    if (updatedUser?.user) {
+      setNameInput(updatedUser.user.user_metadata?.full_name || trimmed);
     }
 
     showToast({ type: "success", title: "Name updated", message: "This is now how the app addresses you." });
