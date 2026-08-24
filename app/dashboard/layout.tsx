@@ -4,10 +4,8 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { ToastProvider } from "@/components/ToastContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, ChevronLeft, Sun, Moon, BookMarked } from "lucide-react";
+import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, X, Sun, Moon, BookMarked } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-
-const ADMIN_EMAIL = "exaltednwadike@gmail.com";
 
 type Theme = "dark" | "light";
 
@@ -33,20 +31,32 @@ const sidebarItems = [
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Close sidebar on route change on mobile
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [pathname, isMobile]);
+
+  useEffect(() => {
     const stored = localStorage.getItem("eduprimeTheme");
     if (stored === "light" || stored === "dark") setTheme(stored);
     setMounted(true);
-    if (window.innerWidth < 768) setCollapsed(true);
 
     (async () => {
       const { data } = await supabase.auth.getUser();
@@ -86,9 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const value = useMemo(() => ({ theme, toggle }), [theme]);
 
   const getInitials = (name?: string | null, email?: string | null) => {
-    if (name) {
-      return name.split(" ").filter(Boolean).map((n) => n[0]?.toUpperCase() ?? "").slice(0, 2).join("");
-    }
+    if (name) return name.split(" ").filter(Boolean).map((n) => n[0]?.toUpperCase() ?? "").slice(0, 2).join("");
     if (email) return email.slice(0, 2).toUpperCase();
     return "?";
   };
@@ -130,89 +138,92 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navIcon = isDark ? "text-white/70 hover:bg-white/10" : "text-gray-500 hover:bg-gray-100";
   const navTitle = isDark ? "text-white" : "text-gray-900";
 
+  const SidebarContent = () => (
+    <div className="flex h-full flex-col" style={{ background: "#0f2914" }}>
+      <div className="flex h-16 items-center justify-between border-b border-white/10 px-3">
+        <img src="/logo.png" alt="EduPrime" className="h-9 w-auto" />
+        {isMobile && (
+          <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-1.5 text-white/70 hover:bg-white/10">
+            <X size={18} />
+          </button>
+        )}
+      </div>
+
+      <nav className="mt-3 flex-1 space-y-0.5 overflow-y-auto px-2">
+        {sidebarItems.map((item) => {
+          const active = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href + "/"));
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.key}
+              href={item.href}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                active ? "bg-[#2db54a] text-white font-semibold" : "text-white/70 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Icon size={18} />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={`mt-2 flex items-center gap-3 rounded-lg border border-white/20 px-3 py-2 text-sm font-medium transition-colors ${
+              pathname?.startsWith("/admin") ? "bg-[#2db54a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <ShieldAlert size={18} />
+            <span className="truncate">Admin Panel</span>
+          </Link>
+        )}
+      </nav>
+
+      <div className="border-t border-white/10 p-3">
+        <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-lg p-2 hover:bg-white/10 transition">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#2db54a] text-xs font-bold text-white">
+            {getInitials(user?.user_metadata?.full_name, user?.email)}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white capitalize">
+              {getFirstName(user?.user_metadata?.full_name, user?.email)}
+            </p>
+            <p className="text-xs text-white/50">View Profile</p>
+          </div>
+        </Link>
+      </div>
+    </div>
+  );
+
   return (
     <ThemeContext.Provider value={value}>
       <ToastProvider>
         <div className={`min-h-screen ${shellBg} ${shellText}`}>
           <div className="flex">
-            <aside
-              className={`sticky top-0 z-20 flex h-screen flex-shrink-0 flex-col transition-all duration-200 ${collapsed ? "w-14" : "w-56"}`}
-              style={{ background: "#0f2914" }}
-            >
-              <div className={`flex h-16 items-center border-b border-white/10 px-3 ${collapsed ? "justify-center" : "justify-between"}`}>
-                {!collapsed && (
-                  <img src="/logo.png" alt="EduPrime" className="h-9 w-auto" />
-                )}
-                <button
-                  onClick={() => setCollapsed((c) => !c)}
-                  className="rounded-lg p-1.5 text-white/70 hover:bg-white/10"
-                >
-                  {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
-                </button>
-              </div>
 
-              <nav className="mt-3 flex-1 space-y-0.5 px-2 overflow-y-auto">
-                {sidebarItems.map((item) => {
-                  const active = pathname === item.href || pathname?.startsWith(item.href + "/");
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.key}
-                      href={item.href}
-                      className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        collapsed ? "justify-center" : "gap-3"
-                      } ${active ? "bg-[#2db54a] text-white font-semibold" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
-                    >
-                      <Icon size={18} />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
-                    </Link>
-                  );
-                })}
+            {/* Desktop sidebar */}
+            {!isMobile && (
+              <aside className="sticky top-0 z-20 h-screen w-56 flex-shrink-0">
+                <SidebarContent />
+              </aside>
+            )}
 
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    className={`mt-2 flex items-center rounded-lg border border-white/20 px-3 py-2 text-sm font-medium transition-colors ${
-                      collapsed ? "justify-center" : "gap-3"
-                    } ${pathname?.startsWith("/admin") ? "bg-[#2db54a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
-                  >
-                    <ShieldAlert size={18} />
-                    {!collapsed && <span className="truncate">Admin Panel</span>}
-                  </Link>
-                )}
-              </nav>
+            {/* Mobile sidebar overlay */}
+            {isMobile && sidebarOpen && (
+              <>
+                <div className="fixed inset-0 z-30 bg-black/60" onClick={() => setSidebarOpen(false)} />
+                <aside className="fixed left-0 top-0 z-40 h-full w-64 shadow-xl">
+                  <SidebarContent />
+                </aside>
+              </>
+            )}
 
-              {!collapsed && (
-                <div className="border-t border-white/10 p-3">
-                  <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-lg p-2 hover:bg-white/10 transition">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#2db54a] text-xs font-bold text-white">
-                      {getInitials(user?.user_metadata?.full_name, user?.email)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white capitalize">
-                        {getFirstName(user?.user_metadata?.full_name, user?.email)}
-                      </p>
-                      <p className="text-xs text-white/50">View Profile</p>
-                    </div>
-                  </Link>
-                </div>
-              )}
-
-              {collapsed && (
-                <div className="border-t border-white/10 p-2">
-                  <Link href="/dashboard/profile" className="flex justify-center rounded-lg p-2 hover:bg-white/10">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2db54a] text-xs font-bold text-white">
-                      {getInitials(user?.user_metadata?.full_name, user?.email)}
-                    </div>
-                  </Link>
-                </div>
-              )}
-            </aside>
-
+            {/* Main content */}
             <div className="flex min-h-screen flex-1 flex-col overflow-hidden">
               <header className={`flex h-14 flex-shrink-0 items-center justify-between border-b px-4 sm:px-6 ${navBg} ${navBorder}`}>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => setCollapsed((c) => !c)} className={`rounded-lg p-1.5 ${navIcon}`}>
+                  <button onClick={() => setSidebarOpen((o) => !o)} className={`rounded-lg p-1.5 ${navIcon}`}>
                     <Menu size={18} />
                   </button>
                   <h2 className={`text-base font-semibold ${navTitle}`}>{pageTitle}</h2>

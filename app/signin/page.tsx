@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastContext";
 import Link from "next/link";
@@ -10,20 +10,30 @@ export default function SigninPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const { showToast } = useToast();
+
+  // If already logged in, redirect to dashboard immediately
+  useEffect(() => {
+    const check = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        window.location.replace("/dashboard");
+      } else {
+        setChecking(false);
+      }
+    };
+    check();
+  }, []);
 
   const handleSignIn = async () => {
     if (!email.trim() || !password) {
       showToast({ type: "error", title: "Sign in failed", message: "Please enter both email and password." });
       return;
     }
-
     setLoading(true);
-
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
     setLoading(false);
-
     if (error || !data?.session) {
       const msg = error?.message?.toLowerCase() || "";
       if (msg.includes("invalid") || msg.includes("credentials")) {
@@ -35,7 +45,6 @@ export default function SigninPage() {
       }
       return;
     }
-
     showToast({ type: "success", title: "Welcome back!", message: "You have signed in successfully." });
     window.location.replace("/dashboard");
   };
@@ -45,7 +54,7 @@ export default function SigninPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: "https://eduprime.com.ng/dashboard",
       },
     });
     if (error) {
@@ -53,6 +62,14 @@ export default function SigninPage() {
       setGoogleLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#052e16]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#052e16] text-white">
@@ -119,9 +136,9 @@ export default function SigninPage() {
             </button>
 
             <p className="text-center text-sm text-slate-400">
-              Don&apos;t have an account?{" "}
+              Do not have an account?{" "}
               <Link href="/signup" className="font-semibold text-[#86efac] hover:underline">
-                Sign up
+                Sign Up
               </Link>
             </p>
           </div>
