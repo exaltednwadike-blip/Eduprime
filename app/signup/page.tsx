@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastContext";
 import Link from "next/link";
@@ -15,7 +15,21 @@ export default function SignupPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
   const [signedUpEmail, setSignedUpEmail] = useState("");
+  const [checking, setChecking] = useState(true);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    const check = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        window.location.replace("/dashboard");
+        return;
+      }
+      setChecking(false);
+    };
+
+    void check();
+  }, []);
 
   const handleSignUp = async () => {
     if (!fullName.trim()) {
@@ -97,6 +111,14 @@ export default function SignupPage() {
       setGoogleLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#052e16]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
+      </div>
+    );
+  }
 
   if (signupComplete) {
     return (

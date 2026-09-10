@@ -1,6 +1,33 @@
-﻿import Link from "next/link";
+﻿"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        window.location.replace("/dashboard");
+        return;
+      }
+      setChecking(false);
+    };
+
+    void checkSession();
+  }, []);
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#052e16]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#052e16] text-white">
       <header className="w-full">

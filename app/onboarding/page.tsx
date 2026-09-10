@@ -1,9 +1,10 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { useToast } from "@/components/ToastContext";
+import { supabase } from "@/lib/supabase";
 
 const levels = ["100 Level", "200 Level", "300 Level", "400 Level", "500 Level", "600 Level"];
 
@@ -12,6 +13,27 @@ export default function OnboardingPage() {
   const { showToast } = useToast();
   const [selectedLevel, setSelectedLevel] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        router.replace("/signin");
+        return;
+      }
+
+      const savedLevel = localStorage.getItem("eduprimeLevel");
+      if (savedLevel) {
+        router.replace("/dashboard");
+        return;
+      }
+
+      setChecking(false);
+    };
+
+    void checkSession();
+  }, [router]);
 
   const handleContinue = () => {
     if (!selectedLevel) {
@@ -24,6 +46,14 @@ export default function OnboardingPage() {
     showToast({ type: "success", title: "You're all set!", message: `Welcome to ${selectedLevel}.` });
     router.push("/dashboard");
   };
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#052e16]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#052e16] text-white">
