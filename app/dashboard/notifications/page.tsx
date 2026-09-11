@@ -72,6 +72,23 @@ export default function NotificationsPage() {
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const pushMergedEntry = (items: any[], type: string, title: string, description: string | null, created_at: string) => {
+    if (!items) return;
+    items.forEach((item) => {
+      if (!item) return;
+      setActivity((prev) => [
+        ...prev,
+        {
+          id: item.id || `${type}-${Math.random().toString(36).slice(2)}`,
+          type,
+          title: title.replace("{name}", item.sender_name || item.name || "A learner"),
+          description: description?.replace("{name}", item.sender_name || item.name || "A learner") || null,
+          created_at: item.created_at || created_at,
+        },
+      ]);
+    });
+  };
+
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getUser();
@@ -84,14 +101,49 @@ export default function NotificationsPage() {
 
     const fetchActivity = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("user_activity")
-        .select("id, type, title, description, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      setActivity(data || []);
-      setLoading(false);
+      try {
+        const [{ data: regularData }, { data: waveData }, { data: followData }, { data: badgeData }] = await Promise.all([
+          supabase.from("user_activity").select("id, type, title, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
+          supabase.from("user_waves").select("id, sender_name, created_at").eq("receiver_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("user_follows").select("id, follower_name, created_at").eq("following_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("user_badges").select("id, badge_name, earned_at").eq("user_id", user.id).order("earned_at", { ascending: false }),
+        ]);
+
+        const merged = [
+          ...(regularData || []).map((entry: any) => ({ ...entry, source: "activity" })),
+          ...(waveData || []).map((entry: any) => ({
+            id: entry.id,
+            type: "wave",
+            title: `${entry.sender_name || "A learner"} waved at you`,
+            description: "You received a social wave.",
+            created_at: entry.created_at,
+            source: "wave",
+          })),
+          ...(followData || []).map((entry: any) => ({
+            id: entry.id,
+            type: "follow",
+            title: `${entry.follower_name || "A learner"} started following you`,
+            description: "You gained a new follower.",
+            created_at: entry.created_at,
+            source: "follow",
+          })),
+          ...(badgeData || []).map((entry: any) => ({
+            id: entry.id,
+            type: "badge",
+            title: `New badge earned: ${entry.badge_name || "Achievement"}`,
+            description: "You unlocked a badge in your profile.",
+            created_at: entry.earned_at,
+            source: "badge",
+          })),
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        setActivity(merged.slice(0, 50));
+      } catch (error) {
+        console.error("Unable to load notifications:", error);
+        setActivity([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchActivity();

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, BookOpen, Monitor, Users, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, X, Sun, Moon, BookMarked } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { setOffline, updatePresence } from "@/lib/presence";
 
 type Theme = "dark" | "light";
 
@@ -23,6 +24,7 @@ const sidebarItems = [
   { key: "study-hub", label: "Study Hub", href: "/dashboard/study-hub", icon: BookOpen },
   { key: "cbt", label: "CBT Simulator", href: "/dashboard/cbt", icon: Monitor },
   { key: "flashcards", label: "Flashcards", href: "/dashboard/flashcards", icon: BookMarked },
+  { key: "people", label: "People", href: "/dashboard/people", icon: Users },
   { key: "community", label: "Community", href: "/dashboard/community", icon: Users },
   { key: "progress", label: "Progress", href: "/dashboard/progress", icon: BarChart2 },
   { key: "notifications", label: "Notifications", href: "/dashboard/notifications", icon: BellIcon },
@@ -37,6 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const [theme, setTheme] = useState<Theme>("dark");
@@ -88,6 +91,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router]);
 
   useEffect(() => {
+    if (!user) return;
+
+    const syncPresenceAndCount = async () => {
+      await updatePresence(supabase, user.id, pathname || undefined);
+
+      const [wavesRes, followsRes] = await Promise.all([
+        supabase.from("user_waves").select("id").eq("receiver_id", user.id),
+        supabase.from("user_follows").select("id").eq("following_id", user.id),
+      ]);
+
+      setNotificationCount((wavesRes.data?.length || 0) + (followsRes.data?.length || 0));
+    };
+
+    syncPresenceAndCount();
+    const interval = setInterval(syncPresenceAndCount, 60000);
+
+    const presenceChannel = supabase.channel("presence");
+    presenceChannel
+      .on("presence", { event: "sync" }, () => {
+        // keep the channel active for online user tracking without altering the rest of the dashboard
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await presenceChannel.track({ user_id: user.id, online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      clearInterval(interval);
+      setOffline(supabase, user.id);
+      presenceChannel.unsubscribe();
+    };
+  }, [user, pathname]);
+
+  useEffect(() => {
     document.documentElement.style.background = theme === "dark" ? "#0a1f0f" : "#f9fafb";
     localStorage.setItem("eduprimeTheme", theme);
   }, [theme]);
@@ -113,6 +151,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       "/dashboard/study-hub": "Study Hub",
       "/dashboard/cbt": "CBT Simulator",
       "/dashboard/flashcards": "Flashcards",
+      "/dashboard/people": "People",
       "/dashboard/community": "Community",
       "/dashboard/progress": "Progress",
       "/dashboard/notifications": "Notifications",
@@ -233,9 +272,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <button onClick={toggle} className={`rounded-lg p-1.5 ${navIcon}`} title="Toggle theme">
                     {isDark ? <Sun size={18} /> : <Moon size={18} />}
                   </button>
-                  <button className={`relative rounded-lg p-1.5 ${navIcon}`}>
+                  <Link href="/dashboard/notifications" className={`relative rounded-lg p-1.5 ${navIcon}`}>
                     <BellIcon size={18} />
-                  </button>
+                    {notificationCount > 0 && (
+                      <span className="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#16a34a] px-1 text-[10px] font-bold text-white">
+                        {notificationCount}
+                      </span>
+                    )}
+                  </Link>
                   <Link href="/dashboard/profile" className="flex items-center gap-1.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a5c2a] text-xs font-bold text-white">
                       {getInitials(user?.user_metadata?.full_name, user?.email)}

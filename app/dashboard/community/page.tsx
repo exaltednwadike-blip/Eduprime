@@ -47,7 +47,7 @@ export default function CommunityPage() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const [tab, setTab] = useState<"leaderboard" | "groups" | "stats">("leaderboard");
+  const [tab, setTab] = useState<"leaderboard" | "groups" | "stats" | "chat">("leaderboard");
   const [leaderboardTab, setLeaderboardTab] = useState<"alltime" | "weekly">("alltime");
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
@@ -60,6 +60,10 @@ export default function CommunityPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const [chatGroupId, setChatGroupId] = useState<string>("");
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [onlineMembers, setOnlineMembers] = useState<any[]>([]);
 
   const card = isDark ? "bg-[#064e23] border border-white/10" : "bg-white border border-gray-200";
   const cardText = isDark ? "text-white" : "text-gray-900";
@@ -108,29 +112,76 @@ export default function CommunityPage() {
     const loadGroups = async () => {
       if (!currentUserId) return;
 
-      const { data: groupData } = await supabase
-        .from("study_groups")
-        .select("id, name, invite_code, created_by, created_at")
-        .contains("members", [currentUserId]);
+      try {
+        const { data: groupData } = await supabase
+          .from("study_groups")
+          .select("id, name, invite_code, created_by, created_at")
+          .contains("members", [currentUserId]);
 
-      const groupList = (groupData || []) as StudyGroup[];
-      setGroups(groupList);
+        const groupList = (groupData || []) as StudyGroup[];
+        setGroups(groupList);
+        setChatGroupId((prev) => prev || groupList[0]?.id || "");
 
-      if (groupList.length === 0) return;
+        if (groupList.length === 0) return;
 
-      const memberMap: Record<string, GroupMember[]> = {};
-      for (const group of groupList) {
-        const { data: membersData } = await supabase
-          .from("group_members")
-          .select("id, user_id, first_name, full_name")
-          .eq("group_id", group.id);
-        memberMap[group.id] = (membersData || []) as GroupMember[];
+        const memberMap: Record<string, GroupMember[]> = {};
+        for (const group of groupList) {
+          const { data: membersData } = await supabase
+            .from("group_members")
+            .select("id, user_id, first_name, full_name")
+            .eq("group_id", group.id);
+          memberMap[group.id] = (membersData || []) as GroupMember[];
+        }
+        setGroupMembers(memberMap);
+      } catch (error) {
+        console.error("Load groups failed", error);
       }
-      setGroupMembers(memberMap);
     };
 
     loadGroups();
   }, [tab, currentUserId]);
+
+  useEffect(() => {
+    if (tab !== "chat" || !chatGroupId || !currentUserId) return;
+
+    const loadMessages = async () => {
+      try {
+        const { data: messageData } = await supabase
+          .from("group_messages")
+          .select("id, group_id, user_id, content, created_at, profiles(username)")
+          .eq("group_id", chatGroupId)
+          .order("created_at", { ascending: true })
+          .limit(40);
+
+        setChatMessages(messageData || []);
+
+        const { data: membersData } = await supabase
+          .from("user_presence")
+          .select("user_id, is_online, last_seen, topic")
+          .neq("user_id", currentUserId)
+          .eq("is_online", true)
+          .limit(30);
+        setOnlineMembers(membersData || []);
+      } catch (error) {
+        console.error("Load chat failed", error);
+      }
+    };
+
+    loadMessages();
+
+    const channel = supabase
+      .channel(`group-chat-${chatGroupId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "group_messages", filter: `group_id=eq.${chatGroupId}` },
+        (payload) => {
+          setChatMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+
+    return () => { channel.unsubscribe(); };
+  }, [tab, chatGroupId, currentUserId]);
 
   const createGroup = async () => {
     if (!groupName.trim() || !currentUserId) return;
@@ -188,6 +239,21 @@ export default function CommunityPage() {
 
   const getFirstName = (fullName: string) => (fullName || "Student").split(" ")[0];
 
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || !chatGroupId || !currentUserId) return;
+
+    try {
+      await supabase.from("group_messages").insert({
+        group_id: chatGroupId,
+        user_id: currentUserId,
+        content: chatInput.trim(),
+      });
+      setChatInput("");
+    } catch (error) {
+      console.error("Message send failed", error);
+    }
+  };
+
   return (
     <div className="space-y-4 p-4 sm:p-6">
       <div className={`rounded-xl ${card} p-4`}>
@@ -207,6 +273,7 @@ export default function CommunityPage() {
           { key: "leaderboard", label: "Leaderboard" },
           { key: "groups", label: "Study Groups" },
           { key: "stats", label: "Anonymous Stats" },
+          { key: "chat", label: "Chat" },
         ].map((item) => (
           <button
             key={item.key}
@@ -358,6 +425,66 @@ export default function CommunityPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "chat" && (
+        <div className="grid gap-4 lg:grid-cols-[1.4fr_0.6fr]">
+          <div className={`rounded-xl ${card} p-4`}>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className={`text-base font-semibold ${cardText}`}>Group chat</h3>
+              <select
+                value={chatGroupId}
+                onChange={(e) => setChatGroupId(e.target.value)}
+                className={`rounded-lg border px-3 py-2 text-sm ${isDark ? "bg-[#064e23] border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"}`}
+              >
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>{group.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="max-h-[360px] space-y-2 overflow-y-auto rounded-lg border border-white/5 bg-black/5 p-3">
+              {chatMessages.length === 0 ? (
+                <p className={`text-sm ${muted}`}>No messages yet. Start the conversation.</p>
+              ) : (
+                chatMessages.map((msg) => (
+                  <div key={msg.id} className={`rounded-lg px-3 py-2 ${msg.user_id === currentUserId ? "ml-auto max-w-[80%] bg-[#16a34a] text-white" : "max-w-[80%] bg-white/10 text-slate-200"}`}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">{msg.user_id === currentUserId ? "You" : "Member"}</p>
+                    <p className="mt-1 text-sm">{msg.content}</p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Send a message"
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm ${isDark ? "bg-[#0b1f12] border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"}`}
+              />
+              <button onClick={sendChatMessage} className="rounded-lg bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#22c55e]">
+                Send
+              </button>
+            </div>
+          </div>
+
+          <div className={`rounded-xl ${card} p-4`}>
+            <h3 className={`text-base font-semibold ${cardText}`}>Online members</h3>
+            <div className="mt-3 space-y-2">
+              {onlineMembers.length === 0 ? (
+                <p className={`text-sm ${muted}`}>No other members are online right now.</p>
+              ) : (
+                onlineMembers.map((member) => (
+                  <div key={member.user_id} className={`flex items-center justify-between rounded-lg px-3 py-2 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
+                    <span className={`text-sm ${cardText}`}>{member.user_id.slice(0, 8)}</span>
+                    <span className="rounded-full bg-[#16a34a]/20 px-2 py-1 text-[10px] font-semibold text-[#16a34a]">Online</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
