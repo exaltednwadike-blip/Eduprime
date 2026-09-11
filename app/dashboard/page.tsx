@@ -16,6 +16,9 @@ import {
   CheckCircle2,
   Star,
   LogIn,
+  Flame,
+  CalendarDays,
+  Zap,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "./layout";
@@ -188,6 +191,17 @@ export default function DashboardHome() {
   const [goalInput, setGoalInput] = useState("25");
   const [savingGoal, setSavingGoal] = useState(false);
 
+  const [studyStreak, setStudyStreak] = useState({ current: 0, longest: 0, freeze: 0 });
+  const [challenge, setChallenge] = useState<any>(null);
+  const [challengeAttempt, setChallengeAttempt] = useState<any>(null);
+  const [challengeChoice, setChallengeChoice] = useState<string | null>(null);
+  const [challengeFeedback, setChallengeFeedback] = useState<{ correct: boolean; explanation: string } | null>(null);
+  const [anonymousStats, setAnonymousStats] = useState<any[]>([]);
+  const [examCountdowns, setExamCountdowns] = useState<any[]>([]);
+  const [examName, setExamName] = useState("");
+  const [examDate, setExamDate] = useState("");
+  const [savingExam, setSavingExam] = useState(false);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -202,6 +216,90 @@ export default function DashboardHome() {
 
   useEffect(() => {
     if (!user) return;
+
+    const refreshStreak = async () => {
+      const { data: streakData } = await supabase
+        .from("study_streaks")
+        .select("current_streak, longest_streak, streak_freeze, last_study_date")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!streakData) {
+        const { data: created } = await supabase
+          .from("study_streaks")
+          .insert({ user_id: user.id, current_streak: 1, longest_streak: 1, streak_freeze: 0, last_study_date: new Date().toISOString() })
+          .select("current_streak, longest_streak, streak_freeze")
+          .single();
+        setStudyStreak({ current: created?.current_streak || 1, longest: created?.longest_streak || 1, freeze: created?.streak_freeze || 0 });
+        return;
+      }
+
+      const today = new Date();
+      const last = streakData.last_study_date ? new Date(streakData.last_study_date) : null;
+      const diffDays = last ? Math.floor((today.getTime() - last.getTime()) / 86400000) : 99;
+
+      let nextCurrent = streakData.current_streak || 1;
+      if (!last) nextCurrent = 1;
+      else if (diffDays === 0) nextCurrent = streakData.current_streak || 1;
+      else if (diffDays === 1) nextCurrent = (streakData.current_streak || 0) + 1;
+      else nextCurrent = 1;
+
+      const nextLongest = Math.max(streakData.longest_streak || 0, nextCurrent);
+      const nextFreeze = streakData.streak_freeze || 0;
+
+      await supabase
+        .from("study_streaks")
+        .upsert(
+          {
+            user_id: user.id,
+            current_streak: nextCurrent,
+            longest_streak: nextLongest,
+            streak_freeze: nextFreeze,
+            last_study_date: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+
+      setStudyStreak({ current: nextCurrent, longest: nextLongest, freeze: nextFreeze });
+    };
+
+    const loadDailyChallenge = async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: challengeData } = await supabase
+        .from("daily_challenges")
+        .select("id, question, option_a, option_b, option_c, option_d, correct_option, explanation, challenge_date")
+        .eq("challenge_date", today)
+        .maybeSingle();
+
+      setChallenge(challengeData || null);
+
+      if (challengeData) {
+        const { data: attemptData } = await supabase
+          .from("daily_challenge_attempts")
+          .select("selected_option, correct, explanation")
+          .eq("user_id", user.id)
+          .eq("challenge_id", challengeData.id)
+          .maybeSingle();
+        setChallengeAttempt(attemptData || null);
+      }
+    };
+
+    const loadAnonymousStats = async () => {
+      const { data } = await supabase.from("anonymous_study_stats").select("subject, students_studied_today, questions_answered_today").limit(3);
+      setAnonymousStats((data || []) as any[]);
+    };
+
+    const loadExamCountdowns = async () => {
+      const { data } = await supabase
+        .from("exam_countdowns")
+        .select("id, exam_name, exam_date")
+        .eq("user_id", user.id)
+        .order("exam_date", { ascending: true })
+        .limit(3);
+      setExamCountdowns(data || []);
+    };
+
+    Promise.all([refreshStreak(), loadDailyChallenge(), loadAnonymousStats(), loadExamCountdowns()]);
 
     const fetchAll = async () => {
       setLoading(true);
@@ -337,6 +435,44 @@ export default function DashboardHome() {
     setSavingGoal(false);
   };
 
+  const submitDailyChallenge = async () => {
+    if (!user || !challenge || !challengeChoice) return;
+
+    const selected = Number(challengeChoice);
+    const isCorrect = selected === Number(challenge.correct_option);
+    const explanation = challenge.explanation || "Try again tomorrow for another challenge.";
+
+    await supabase.from("daily_challenge_attempts").upsert(
+      {
+        user_id: user.id,
+        challenge_id: challenge.id,
+        selected_option: selected,
+        correct: isCorrect,
+        explanation,
+        answered_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,challenge_id" }
+    );
+
+    setChallengeAttempt({ selected_option: selected, correct: isCorrect, explanation });
+    setChallengeFeedback({ correct: isCorrect, explanation });
+  };
+
+  const addExamCountdown = async () => {
+    if (!user || !examName.trim() || !examDate) return;
+
+    setSavingExam(true);
+    const { data } = await supabase
+      .from("exam_countdowns")
+      .insert({ user_id: user.id, exam_name: examName.trim(), exam_date: examDate })
+      .select("id, exam_name, exam_date");
+
+    setExamCountdowns((data || []) as any[]);
+    setExamName("");
+    setExamDate("");
+    setSavingExam(false);
+  };
+
   // ---- theme tokens ----
   // Banner stays a richer green; content cards use a darker, more muted tone
   // to create the visual hierarchy seen in the reference design.
@@ -409,6 +545,137 @@ export default function DashboardHome() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 xl:grid-cols-4">
+        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400">
+              <Flame size={20} />
+            </div>
+            <div>
+              <p className={`text-xs ${muted}`}>Study streak</p>
+              <h3 className={`text-2xl font-bold ${heading}`}>{studyStreak.current}</h3>
+            </div>
+          </div>
+          <div className="mt-3 space-y-2 text-xs">
+            <p className={muted}>Longest streak: {studyStreak.longest} days</p>
+            <p className={muted}>Freeze count: {studyStreak.freeze}</p>
+          </div>
+        </div>
+
+        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#16a34a]/10 text-[#16a34a]">
+              <Zap size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className={`text-xs ${muted}`}>Daily challenge</p>
+              <h3 className={`text-sm font-semibold ${heading}`}>Today&apos;s challenge</h3>
+            </div>
+          </div>
+
+          {challenge ? (
+            <div className="mt-3 space-y-2">
+              <p className={`text-sm font-medium ${heading}`}>{challenge.question}</p>
+              <div className="grid gap-2">
+                {[
+                  challenge.option_a,
+                  challenge.option_b,
+                  challenge.option_c,
+                  challenge.option_d,
+                ].map((option, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setChallengeChoice(String(index))}
+                    className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
+                      challengeChoice === String(index)
+                        ? "border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]"
+                        : isDark
+                          ? "border-white/10 bg-white/5 text-slate-200"
+                          : "border-gray-200 bg-white text-gray-700"
+                    }`}
+                  >
+                    {String.fromCharCode(65 + index)}. {option}
+                  </button>
+                ))}
+              </div>
+
+              {!challengeAttempt && (
+                <button
+                  onClick={submitDailyChallenge}
+                  disabled={!challengeChoice}
+                  className="mt-2 inline-flex rounded-lg bg-[#16a34a] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                >
+                  Submit answer
+                </button>
+              )}
+
+              {challengeFeedback && (
+                <p className={`text-xs ${challengeFeedback.correct ? "text-emerald-400" : "text-red-400"}`}>
+                  {challengeFeedback.correct ? "Correct" : "Incorrect"}: {challengeFeedback.explanation}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className={`mt-3 text-sm ${muted}`}>No challenge today - check back tomorrow.</p>
+          )}
+        </div>
+
+        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/10 text-sky-400">
+              <TrendingUp size={20} />
+            </div>
+            <div>
+              <p className={`text-xs ${muted}`}>Anonymous stats</p>
+              <h3 className={`text-sm font-semibold ${heading}`}>Students studying today</h3>
+            </div>
+          </div>
+          <div className="mt-3 space-y-2">
+            {anonymousStats.length === 0 ? (
+              <p className={`text-sm ${muted}`}>No activity yet.</p>
+            ) : (
+              anonymousStats.map((stat) => (
+                <p key={stat.subject} className={`text-xs ${muted}`}>
+                  {stat.students_studied_today} students studied {stat.subject} today
+                </p>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10 text-violet-400">
+              <CalendarDays size={20} />
+            </div>
+            <div>
+              <p className={`text-xs ${muted}`}>Exam countdown</p>
+              <h3 className={`text-sm font-semibold ${heading}`}>Upcoming exam</h3>
+            </div>
+          </div>
+
+          {examCountdowns.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {examCountdowns.map((item) => (
+                <p key={item.id} className={`text-xs ${muted}`}>
+                  Your {item.exam_name} is in {Math.max(0, Math.ceil((new Date(item.exam_date).getTime() - Date.now()) / 86400000))} days.
+                </p>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-3 space-y-2">
+              <p className={`text-xs ${muted}`}>No exam saved yet.</p>
+              <input value={examName} onChange={(e) => setExamName(e.target.value)} placeholder="Exam name" className={`w-full rounded-lg border px-2 py-2 text-xs ${isDark ? "border-white/10 bg-black/20 text-white" : "border-gray-200 bg-gray-50 text-gray-900"}`} />
+              <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={`w-full rounded-lg border px-2 py-2 text-xs ${isDark ? "border-white/10 bg-black/20 text-white" : "border-gray-200 bg-gray-50 text-gray-900"}`} />
+              <button onClick={addExamCountdown} disabled={savingExam} className="inline-flex rounded-lg bg-[#16a34a] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
+                {savingExam ? "Saving..." : "Add exam"}
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

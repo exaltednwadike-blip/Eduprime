@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "../layout";
-import { ClipboardList, Monitor, Trophy, Sparkles, Settings, Loader2 } from "lucide-react";
+import { ClipboardList, Monitor, Trophy, Sparkles, Settings, Loader2, Lock, Award, Download, Star } from "lucide-react";
 
 export default function ProfilePage() {
   const { theme } = useTheme();
@@ -15,6 +15,8 @@ export default function ProfilePage() {
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [cbtTestsTaken, setCbtTestsTaken] = useState(0);
   const [averageScore, setAverageScore] = useState(0);
+  const [badges, setBadges] = useState<any[]>([]);
+  const [certificates, setCertificates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,13 +35,17 @@ export default function ProfilePage() {
     const fetchStats = async () => {
       setLoading(true);
 
-      const [{ data: attemptsData }, { data: cbtData }] = await Promise.all([
+      const [{ data: attemptsData }, { data: cbtData }, { data: badgeData }, { data: certificateData }] = await Promise.all([
         supabase.from("question_attempts").select("id").eq("user_id", user.id),
         supabase.from("cbt_results").select("percentage").eq("user_id", user.id),
+        supabase.from("user_badges").select("id, badge_name, badge_description, badge_icon, earned_at").eq("user_id", user.id).order("earned_at", { ascending: false }),
+        supabase.from("topic_completions").select("id, topic_name, percentage, completed_at").eq("user_id", user.id).order("completed_at", { ascending: false }),
       ]);
 
       setQuestionsAnswered(attemptsData?.length || 0);
       setCbtTestsTaken(cbtData?.length || 0);
+      setBadges(badgeData || []);
+      setCertificates(certificateData || []);
 
       if (cbtData && cbtData.length > 0) {
         const avg = cbtData.reduce((sum: number, r: any) => sum + Number(r.percentage || 0), 0) / cbtData.length;
@@ -63,6 +69,40 @@ export default function ProfilePage() {
   const displayName = useMemo(() => {
     return user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student";
   }, [user]);
+
+  const lockedBadges = [
+    { badge_name: "Study Starter", badge_description: "Answer 10 questions to unlock this badge.", badge_icon: "✨" },
+    { badge_name: "Streak Igniter", badge_description: "Maintain a 3-day study streak to unlock this badge.", badge_icon: "🔥" },
+    { badge_name: "Exam Ready", badge_description: "Take 3 CBT exams to unlock this badge.", badge_icon: "🧠" },
+    { badge_name: "Top Scorer", badge_description: "Reach 80% in your best CBT score to unlock this badge.", badge_icon: "🏆" },
+  ];
+
+  const generateCertificate = (topic: any) => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+
+    const score = topic.percentage ?? 0;
+    const date = new Date(topic.completed_at).toLocaleDateString();
+    const text = `
+      <html>
+        <body style="font-family: Arial, sans-serif; padding: 40px; color: #0f172a; background: #f8fafc;">
+          <div style="max-width: 760px; margin: 0 auto; border: 2px solid #16a34a; border-radius: 16px; padding: 32px; background: white;">
+            <h1 style="text-align: center; color: #166534; margin-bottom: 12px;">EduPrime Certificate</h1>
+            <p style="text-align: center; font-size: 18px;">This certifies that</p>
+            <h2 style="text-align: center; font-size: 32px; margin: 0;">${displayName}</h2>
+            <p style="text-align: center; margin-top: 18px; font-size: 18px;">has successfully completed</p>
+            <h3 style="text-align: center; font-size: 26px; color: #15803d; margin: 8px 0;">${topic.topic_name}</h3>
+            <p style="text-align: center; font-size: 18px;">with a score of <strong>${score}%</strong> on ${date}</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    win.document.write(text);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
 
   // ---- theme tokens ----
   const cardBg = isDark ? "bg-[#0d2417] border border-white/5" : "bg-white border border-gray-200";

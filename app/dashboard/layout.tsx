@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { ToastProvider } from "@/components/ToastContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Monitor, Trophy, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, X, Sun, Moon, BookMarked } from "lucide-react";
+import { Home, BookOpen, Monitor, Users, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, X, Sun, Moon, BookMarked } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Theme = "dark" | "light";
@@ -23,7 +23,7 @@ const sidebarItems = [
   { key: "study-hub", label: "Study Hub", href: "/dashboard/study-hub", icon: BookOpen },
   { key: "cbt", label: "CBT Simulator", href: "/dashboard/cbt", icon: Monitor },
   { key: "flashcards", label: "Flashcards", href: "/dashboard/flashcards", icon: BookMarked },
-  { key: "leaderboard", label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy },
+  { key: "community", label: "Community", href: "/dashboard/community", icon: Users },
   { key: "progress", label: "Progress", href: "/dashboard/progress", icon: BarChart2 },
   { key: "notifications", label: "Notifications", href: "/dashboard/notifications", icon: BellIcon },
   { key: "settings", label: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
@@ -113,7 +113,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       "/dashboard/study-hub": "Study Hub",
       "/dashboard/cbt": "CBT Simulator",
       "/dashboard/flashcards": "Flashcards",
-      "/dashboard/leaderboard": "Leaderboard",
+      "/dashboard/community": "Community",
       "/dashboard/progress": "Progress",
       "/dashboard/notifications": "Notifications",
       "/dashboard/settings": "Settings",
