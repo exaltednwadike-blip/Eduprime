@@ -1,33 +1,23 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  BookOpen,
-  Monitor,
-  Trophy,
-  Sparkles,
-  ClipboardList,
-  TrendingUp,
-  Clock,
-  Lightbulb,
-  Target,
   ArrowRight,
-  CheckCircle2,
-  Star,
-  LogIn,
-  Flame,
   CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  Flame,
+  Lightbulb,
+  LogIn,
+  Plus,
+  Star,
+  Target,
   Zap,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useTheme } from "./layout";
-
-type Subject = {
-  id: string;
-  name: string;
-  description: string | null;
-};
+import { useMySubjects } from "@/lib/useMySubjects";
 
 type ActivityEntry = {
   id: string;
@@ -37,35 +27,57 @@ type ActivityEntry = {
   type?: string | null;
 };
 
+type LastStudy = {
+  subjectId: string;
+  categoryId: string;
+  topicId: string;
+  subjectName: string;
+  topicName: string;
+  index: number;
+  total: number;
+};
+
+type ExamCountdown = { id: string; exam_name: string; exam_date: string };
+type AnonymousStat = { subject: string; students_studied_today: number; questions_answered_today: number };
+
 const tips = [
-  "Spaced repetition is proven to improve long-term memory retention by up to 80%.",
+  "Spaced repetition is one of the best-supported ways to improve long-term memory.",
   "Teach what you learn. Explaining a concept to someone else cements your understanding.",
   "Practice past questions under timed conditions to simulate real exam pressure.",
   "Break study sessions into 25-minute focused blocks with 5-minute breaks (Pomodoro technique).",
-  "Review your mistakes after every CBT — wrong answers teach more than right ones.",
+  "Review your mistakes after every CBT. Wrong answers teach more than right ones.",
   "The night before an exam, sleep is more valuable than last-minute cramming.",
-  "Connect new information to what you already know — associations make recall easier.",
-  "In anatomy, always learn structure before function — it makes physiology make sense.",
+  "Connect new information to what you already know. Associations make recall easier.",
+  "In anatomy, always learn structure before function. It makes physiology make sense.",
   "Draw diagrams. Visual representation of pathways and structures boosts recall significantly.",
-  "For biochemistry pathways, focus on the rate-limiting enzyme first — examiners love those.",
-  "Group muscles by their nerve supply — it makes clinical questions much easier.",
-  "When studying physiology, always ask 'what happens if this fails?' — that's how diseases begin.",
-  "Read past questions before reading your textbook — it tells you what actually gets examined.",
-  "Study in a group once a week — other people catch what you missed.",
+  "For biochemistry pathways, focus on the rate-limiting enzyme first. Examiners love those.",
+  "Group muscles by their nerve supply. It makes clinical questions much easier.",
+  "When studying physiology, always ask 'what happens if this fails?' That's how diseases begin.",
+  "Read past questions before reading your textbook. It tells you what actually gets examined.",
+  "Study in a group once a week. Other people catch what you missed.",
   "Mnemonics are powerful but only if you create them yourself.",
   "Don't highlight everything. If everything is important, nothing is.",
   "The best time to review a topic is 24 hours after you first studied it.",
-  "Drink water consistently during study sessions — dehydration reduces concentration.",
+  "Drink water consistently during study sessions. Dehydration reduces concentration.",
   "For MCQs, eliminate obviously wrong options first before guessing.",
-  "Your brain consolidates memory during sleep — pulling all-nighters before exams backfires.",
-  "In physiology, master the action potential — it appears in neurology, cardiology, and muscle physiology.",
-  "Biochemistry and physiology overlap heavily — studying them together saves time.",
-  "For anatomy practicals, handle the prosection confidently — examiners notice hesitation.",
+  "Your brain consolidates memory during sleep. Pulling all-nighters before exams backfires.",
+  "In physiology, master the action potential. It appears in neurology, cardiology, and muscle physiology.",
+  "Biochemistry and physiology overlap heavily. Studying them together saves time.",
+  "For anatomy practicals, handle the prosection confidently. Examiners notice hesitation.",
   "Set a specific goal before each study session: 'I will finish the brachial plexus today.'",
-  "Use the EduPrime CBT simulator weekly — consistency beats cramming every time.",
-  "Every organ has a blood supply, nerve supply, and lymphatic drainage — learn all three.",
+  "Use the EduPrime CBT simulator weekly. Consistency beats cramming every time.",
+  "Every organ has a blood supply, nerve supply, and lymphatic drainage. Learn all three.",
   "When you feel overwhelmed, study the smallest possible unit until confidence returns.",
 ];
+
+const card = "rounded-2xl border border-line bg-surface p-4";
+const iconTile = "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] bg-primary-soft text-primary";
+const primaryButton =
+  "inline-flex items-center justify-center gap-1.5 rounded-[10px] bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50";
+const secondaryButton =
+  "inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-raised";
+const fieldClass =
+  "w-full rounded-[10px] border border-line bg-canvas px-3 py-2.5 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary";
 
 function formatRelativeTime(dateStr: string) {
   const then = new Date(dateStr).getTime();
@@ -84,100 +96,41 @@ function todayDateString() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function daysUntil(dateStr: string) {
+  return Math.max(0, Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000));
+}
+
 function activityIcon(type?: string | null) {
   switch (type) {
     case "login":
-      return <LogIn size={16} className="text-sky-400" />;
+      return <LogIn size={16} className="text-muted" />;
     case "token":
-      return <Star size={16} className="text-amber-400" />;
+      return <Star size={16} className="text-highlight" />;
     default:
-      return <CheckCircle2 size={16} className="text-emerald-400" />;
+      return <CheckCircle2 size={16} className="text-primary" />;
   }
 }
 
-// Original illustration (not a copy of any licensed asset) — clipboard + graduation cap,
-// swap for a real illustration asset later by replacing this with an <img src="/illustration.svg" />
-function BannerIllustration() {
-  return (
-    <svg viewBox="0 0 200 180" className="h-28 w-28 sm:h-32 sm:w-32" fill="none">
-      <rect x="40" y="20" width="90" height="120" rx="10" fill="#0f2914" stroke="#16a34a" strokeWidth="2" />
-      <rect x="70" y="10" width="30" height="18" rx="4" fill="#16a34a" />
-      <line x1="55" y1="55" x2="115" y2="55" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" />
-      <line x1="55" y1="72" x2="115" y2="72" stroke="#065f2c" strokeWidth="3" strokeLinecap="round" />
-      <line x1="55" y1="89" x2="100" y2="89" stroke="#065f2c" strokeWidth="3" strokeLinecap="round" />
-      <path d="M50 55 l6 6 l10 -12" stroke="#22c55e" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M50 72 l6 6 l10 -12" stroke="#22c55e" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <g transform="translate(95,110)">
-        <path d="M40 10 L75 26 L40 42 L5 26 Z" fill="#22c55e" />
-        <path d="M20 33 v18 c0 6 10 12 20 12 s20 -6 20 -12 v-18" stroke="#16a34a" strokeWidth="3" fill="none" />
-        <line x1="75" y1="26" x2="75" y2="46" stroke="#16a34a" strokeWidth="2" />
-      </g>
-      <circle cx="165" cy="30" r="3" fill="#22c55e" opacity="0.6" />
-      <circle cx="178" cy="45" r="2" fill="#22c55e" opacity="0.5" />
-      <circle cx="160" cy="60" r="2.5" fill="#22c55e" opacity="0.4" />
-    </svg>
-  );
-}
-
-// Small self-contained SVG donut — no chart library dependency
-function ProgressDonut({ percent, isDark }: { percent: number; isDark: boolean }) {
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percent / 100) * circumference;
-
-  return (
-    <svg viewBox="0 0 140 140" className="h-24 w-24">
-      <circle
-        cx="70"
-        cy="70"
-        r={radius}
-        fill="none"
-        stroke={isDark ? "rgba(255,255,255,0.08)" : "#e5e7eb"}
-        strokeWidth="10"
-      />
-      <circle
-        cx="70"
-        cy="70"
-        r={radius}
-        fill="none"
-        stroke="#16a34a"
-        strokeWidth="10"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform="rotate(-90 70 70)"
-        style={{ transition: "stroke-dashoffset 0.4s ease" }}
-      />
-      <text
-        x="70"
-        y="66"
-        textAnchor="middle"
-        className={isDark ? "fill-white" : "fill-gray-900"}
-        style={{ fontSize: "22px", fontWeight: 700 }}
-      >
-        {percent}%
-      </text>
-      <text
-        x="70"
-        y="86"
-        textAnchor="middle"
-        className={isDark ? "fill-slate-400" : "fill-gray-500"}
-        style={{ fontSize: "9px" }}
-      >
-        Overall Progress
-      </text>
-    </svg>
-  );
+// Reads every row of a table in pages of 1000, so counts stay correct as content grows.
+async function fetchAllPages(query: (from: number, to: number) => any): Promise<any[]> {
+  const pageSize = 1000;
+  const rows: any[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await query(from, from + pageSize - 1);
+    if (error || !data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < pageSize) break;
+  }
+  return rows;
 }
 
 export default function DashboardHome() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
   const [user, setUser] = useState<any>(null);
   const [level, setLevel] = useState<string>("");
+  const [lastStudy, setLastStudy] = useState<LastStudy | null>(null);
 
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const { subjects, hasChosen, loading: subjectsLoading } = useMySubjects();
+
   const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
   const [subjectProgress, setSubjectProgress] = useState<Record<string, number>>({});
 
@@ -194,12 +147,13 @@ export default function DashboardHome() {
   const [studyStreak, setStudyStreak] = useState({ current: 0, longest: 0, freeze: 0 });
   const [challenge, setChallenge] = useState<any>(null);
   const [challengeAttempt, setChallengeAttempt] = useState<any>(null);
-  const [challengeChoice, setChallengeChoice] = useState<string | null>(null);
+  const [challengeChoice, setChallengeChoice] = useState<number | null>(null);
   const [challengeFeedback, setChallengeFeedback] = useState<{ correct: boolean; explanation: string } | null>(null);
-  const [anonymousStats, setAnonymousStats] = useState<any[]>([]);
-  const [examCountdowns, setExamCountdowns] = useState<any[]>([]);
+  const [anonymousStats, setAnonymousStats] = useState<AnonymousStat[]>([]);
+  const [examCountdowns, setExamCountdowns] = useState<ExamCountdown[]>([]);
   const [examName, setExamName] = useState("");
   const [examDate, setExamDate] = useState("");
+  const [showExamForm, setShowExamForm] = useState(false);
   const [savingExam, setSavingExam] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -207,6 +161,16 @@ export default function DashboardHome() {
   useEffect(() => {
     const storedLevel = localStorage.getItem("eduprimeLevel");
     if (storedLevel) setLevel(storedLevel);
+
+    try {
+      const raw = localStorage.getItem("eduprimeLastStudy");
+      if (raw) {
+        const parsed = JSON.parse(raw) as LastStudy;
+        if (parsed?.subjectId && parsed?.categoryId && parsed?.topicId) setLastStudy(parsed);
+      }
+    } catch {
+      // ignore unreadable saved position
+    }
 
     (async () => {
       const { data } = await supabase.auth.getUser();
@@ -285,8 +249,11 @@ export default function DashboardHome() {
     };
 
     const loadAnonymousStats = async () => {
-      const { data } = await supabase.from("anonymous_study_stats").select("subject, students_studied_today, questions_answered_today").limit(3);
-      setAnonymousStats((data || []) as any[]);
+      const { data } = await supabase
+        .from("anonymous_study_stats")
+        .select("subject, students_studied_today, questions_answered_today")
+        .limit(3);
+      setAnonymousStats((data || []) as AnonymousStat[]);
     };
 
     const loadExamCountdowns = async () => {
@@ -296,43 +263,37 @@ export default function DashboardHome() {
         .eq("user_id", user.id)
         .order("exam_date", { ascending: true })
         .limit(3);
-      setExamCountdowns(data || []);
+      setExamCountdowns((data || []) as ExamCountdown[]);
     };
 
-    Promise.all([refreshStreak(), loadDailyChallenge(), loadAnonymousStats(), loadExamCountdowns()]);
+    void Promise.all([refreshStreak(), loadDailyChallenge(), loadAnonymousStats(), loadExamCountdowns()]);
 
     const fetchAll = async () => {
       setLoading(true);
 
-      // --- Content tree: subjects -> categories -> topics -> questions ---
-      const [{ data: subjectData }, { data: categoryData }, { data: topicData }, { data: questionData }] =
-        await Promise.all([
-          supabase.from("subjects").select("id, name, description"),
-          supabase.from("categories").select("id, subject_id"),
-          supabase.from("topics").select("id, category_id"),
-          supabase.from("questions").select("id, topic_id"),
-        ]);
-
-      if (subjectData) setSubjects(subjectData);
+      const [categoryRows, topicRows, questionRows] = await Promise.all([
+        fetchAllPages((a, b) => supabase.from("categories").select("id, subject_id").order("id").range(a, b)),
+        fetchAllPages((a, b) => supabase.from("topics").select("id, category_id").order("id").range(a, b)),
+        fetchAllPages((a, b) => supabase.from("questions").select("id, topic_id").order("id").range(a, b)),
+      ]);
 
       const categoryToSubject: Record<string, string> = {};
-      (categoryData || []).forEach((c: any) => {
-        categoryToSubject[c.id] = c.subject_id;
+      categoryRows.forEach((c: any) => {
+        categoryToSubject[String(c.id)] = String(c.subject_id);
       });
       const topicToSubject: Record<string, string> = {};
-      (topicData || []).forEach((t: any) => {
-        const subjId = categoryToSubject[t.category_id];
-        if (subjId) topicToSubject[t.id] = subjId;
+      topicRows.forEach((t: any) => {
+        const subjId = categoryToSubject[String(t.category_id)];
+        if (subjId) topicToSubject[String(t.id)] = subjId;
       });
 
       const countsBySubject: Record<string, number> = {};
-      (questionData || []).forEach((q: any) => {
-        const subjId = topicToSubject[q.topic_id];
+      questionRows.forEach((q: any) => {
+        const subjId = topicToSubject[String(q.topic_id)];
         if (subjId) countsBySubject[subjId] = (countsBySubject[subjId] || 0) + 1;
       });
       setQuestionCounts(countsBySubject);
 
-      // --- User-specific stats ---
       const [{ data: attemptsData }, { data: cbtData }, { data: activityData }, { data: goalData }] =
         await Promise.all([
           supabase.from("question_attempts").select("question_id, subject_id, correct").eq("user_id", user.id),
@@ -342,7 +303,7 @@ export default function DashboardHome() {
             .select("id, title, description, type, created_at")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
-            .limit(5),
+            .limit(3),
           supabase
             .from("daily_goals")
             .select("target, completed")
@@ -364,8 +325,9 @@ export default function DashboardHome() {
       const correctBySubject: Record<string, Set<string>> = {};
       (attemptsData || []).forEach((a: any) => {
         if (a.correct && a.subject_id) {
-          if (!correctBySubject[a.subject_id]) correctBySubject[a.subject_id] = new Set();
-          correctBySubject[a.subject_id].add(a.question_id);
+          const key = String(a.subject_id);
+          if (!correctBySubject[key]) correctBySubject[key] = new Set();
+          correctBySubject[key].add(String(a.question_id));
         }
       });
       const progressBySubject: Record<string, number> = {};
@@ -376,7 +338,7 @@ export default function DashboardHome() {
       });
       setSubjectProgress(progressBySubject);
 
-      setRecentActivity(activityData || []);
+      setRecentActivity((activityData || []) as ActivityEntry[]);
 
       if (goalData) {
         setDailyGoal({ target: goalData.target, completed: goalData.completed });
@@ -387,21 +349,20 @@ export default function DashboardHome() {
       setLoading(false);
     };
 
-    fetchAll();
+    void fetchAll();
   }, [user]);
 
   const firstName = useMemo(() => {
     const fullName = user?.user_metadata?.full_name || user?.email || "Student";
-    return fullName.split(" ")[0];
+    const first = String(fullName).split(" ")[0].split("@")[0];
+    return first === first.toUpperCase() ? first.charAt(0) + first.slice(1).toLowerCase() : first;
   }, [user]);
 
-  const today = useMemo(() => {
-    return new Date().toLocaleDateString(undefined, {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
   }, []);
 
   const tipOfTheDay = useMemo(() => {
@@ -413,11 +374,11 @@ export default function DashboardHome() {
     return tips[Math.abs(hash) % tips.length];
   }, []);
 
-  const overallProgress = useMemo(() => {
-    const values = Object.values(subjectProgress);
-    if (values.length === 0) return 0;
-    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-  }, [subjectProgress]);
+  const visibleSubjects = useMemo(() => {
+    const withQuestions = subjects.filter((s) => (questionCounts[s.id] || 0) > 0);
+    const without = subjects.filter((s) => !(questionCounts[s.id] || 0));
+    return [...withQuestions, ...without].slice(0, 3);
+  }, [subjects, questionCounts]);
 
   const saveGoal = async () => {
     if (!user) return;
@@ -436,17 +397,16 @@ export default function DashboardHome() {
   };
 
   const submitDailyChallenge = async () => {
-    if (!user || !challenge || !challengeChoice) return;
+    if (!user || !challenge || challengeChoice === null) return;
 
-    const selected = Number(challengeChoice);
-    const isCorrect = selected === Number(challenge.correct_option);
+    const isCorrect = challengeChoice === Number(challenge.correct_option);
     const explanation = challenge.explanation || "Try again tomorrow for another challenge.";
 
     await supabase.from("daily_challenge_attempts").upsert(
       {
         user_id: user.id,
         challenge_id: challenge.id,
-        selected_option: selected,
+        selected_option: challengeChoice,
         correct: isCorrect,
         explanation,
         answered_at: new Date().toISOString(),
@@ -454,7 +414,7 @@ export default function DashboardHome() {
       { onConflict: "user_id,challenge_id" }
     );
 
-    setChallengeAttempt({ selected_option: selected, correct: isCorrect, explanation });
+    setChallengeAttempt({ selected_option: challengeChoice, correct: isCorrect, explanation });
     setChallengeFeedback({ correct: isCorrect, explanation });
   };
 
@@ -467,420 +427,382 @@ export default function DashboardHome() {
       .insert({ user_id: user.id, exam_name: examName.trim(), exam_date: examDate })
       .select("id, exam_name, exam_date");
 
-    setExamCountdowns((data || []) as any[]);
-    setExamName("");
-    setExamDate("");
+    if (data && data.length > 0) {
+      setExamCountdowns((prev) =>
+        [...prev, ...(data as ExamCountdown[])].sort(
+          (a, b) => new Date(a.exam_date).getTime() - new Date(b.exam_date).getTime()
+        )
+      );
+      setExamName("");
+      setExamDate("");
+      setShowExamForm(false);
+    }
     setSavingExam(false);
   };
 
-  // ---- theme tokens ----
-  // Banner stays a richer green; content cards use a darker, more muted tone
-  // to create the visual hierarchy seen in the reference design.
-  const bannerBg = isDark ? "bg-[#0f3d20]" : "bg-white";
-  const cardBg = isDark ? "bg-[#0d2417] border border-white/5" : "bg-white border border-gray-200";
-  const cardShadow = isDark ? "shadow-[0_20px_60px_rgba(0,0,0,0.35)]" : "shadow-sm";
-  const muted = isDark ? "text-slate-400" : "text-gray-500";
-  const heading = isDark ? "text-white" : "text-gray-900";
-  const subtleBg = isDark ? "bg-[#123821]" : "bg-emerald-50";
-  const trackBg = isDark ? "bg-white/10" : "bg-gray-200";
+  const challengeOptionClass = (index: number) => {
+    if (challengeAttempt) {
+      const picked = Number(challengeAttempt.selected_option);
+      const right = Number(challenge?.correct_option);
+      if (index === right) return "border-primary bg-primary-soft text-fg";
+      if (index === picked) return "border-danger bg-danger-soft text-fg";
+      return "border-line bg-surface text-muted";
+    }
+    return challengeChoice === index
+      ? "border-primary bg-primary-soft text-fg"
+      : "border-line bg-surface text-fg hover:border-primary";
+  };
+
+  const challengeResult =
+    challengeFeedback ??
+    (challengeAttempt
+      ? { correct: !!challengeAttempt.correct, explanation: challengeAttempt.explanation || "" }
+      : null);
+
+  const resumeHref = lastStudy
+    ? `/dashboard/study-hub/${lastStudy.subjectId}/${lastStudy.categoryId}/${lastStudy.topicId}${lastStudy.index > 0 ? `?q=${lastStudy.index}` : ""}`
+    : "/dashboard/study-hub";
+  const resumePercent = lastStudy && lastStudy.total > 0 ? ((lastStudy.index + 1) / lastStudy.total) * 100 : 0;
+
+  const stats = [
+    {
+      label: "Streak",
+      value: `${studyStreak.current} day${studyStreak.current === 1 ? "" : "s"}`,
+      icon: Flame,
+      color: "text-highlight",
+    },
+    { label: "Answered", value: loading ? "..." : String(questionsAnswered), icon: ClipboardList, color: "text-primary" },
+    {
+      label: "CBT average",
+      value: loading ? "..." : cbtTestsTaken > 0 ? `${averageScore}%` : "-",
+      icon: Target,
+      color: "text-primary",
+    },
+  ];
+
+  const showMore =
+    true; // tip and exam countdown are always shown, so the section always has content
 
   return (
-    <div className="space-y-4">
-      {/* Welcome banner */}
-      <section className={`rounded-2xl border ${isDark ? "border-white/10 " + bannerBg : "border-gray-200 " + bannerBg} p-4 sm:p-6`}>
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-xl">
-            <p className={`flex items-center gap-2 text-sm ${muted}`}>
-              <span className="text-lg">👋</span> Welcome back,
-            </p>
-            <h1 className={`mt-1 text-2xl font-semibold sm:text-3xl ${heading}`}>{firstName}</h1>
-            <p className={`mt-2 max-w-xl text-sm ${muted}`}>
-              Keep your momentum going with today's study plan and course progress overview.
-            </p>
+    <div className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-6">
+      {/* Greeting */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm text-muted">{greeting}</p>
+          <h1 className="truncate text-2xl font-semibold text-fg">{firstName}</h1>
+        </div>
+        {level ? (
+          <span className="flex-shrink-0 rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary">
+            {level}
+          </span>
+        ) : (
+          <Link href="/dashboard/settings" className="flex-shrink-0 text-xs font-medium text-primary hover:underline">
+            Set your level
+          </Link>
+        )}
+      </div>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link
-                href="/dashboard/study-hub"
-                className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e]"
-              >
-                <BookOpen size={16} />
-                Continue Studying
-              </Link>
-              <Link
-                href="/dashboard/cbt"
-                className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-semibold transition ${
-                  isDark
-                    ? "border-white/20 text-white hover:bg-white/10"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <Monitor size={16} />
-                Take CBT
-              </Link>
+      {/* Continue studying */}
+      <section className="rounded-2xl border border-primary/30 bg-primary-soft p-4 sm:p-5">
+        <p className="text-xs font-medium text-primary">{lastStudy ? "Continue studying" : "Start studying"}</p>
+        {lastStudy ? (
+          <>
+            <p className="mt-1 text-base font-semibold text-fg">
+              {lastStudy.subjectName} · {lastStudy.topicName}
+            </p>
+            <p className="mt-0.5 text-sm text-muted">
+              Question {lastStudy.index + 1} of {lastStudy.total}
+            </p>
+            <div className="mt-3 h-1 overflow-hidden rounded-full bg-line">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${resumePercent}%` }} />
             </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden lg:block">
-              <BannerIllustration />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              <div className={`rounded-2xl ${isDark ? "bg-black/30" : subtleBg} px-4 py-3 text-xs ${muted}`}>
-                <div className="flex items-center gap-1.5 font-semibold text-[#22c55e]">
-                  <Clock size={13} /> Today
-                </div>
-                <div className={`mt-1 text-sm font-semibold ${heading}`}>{today}</div>
-              </div>
-              <div className={`rounded-2xl ${isDark ? "bg-black/30" : subtleBg} px-4 py-3 text-xs ${muted}`}>
-                <div className="flex items-center gap-1.5 font-semibold text-[#22c55e]">
-                  <TrendingUp size={13} /> Level
-                </div>
-                <div className={`mt-1 text-sm font-semibold ${heading}`}>
-                  {level || (
-                    <Link href="/dashboard/settings" className="text-[#22c55e] hover:underline">
-                      Set your level →
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-muted">Pick a subject and topic to begin.</p>
+        )}
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          <Link href={resumeHref} className={primaryButton}>
+            {lastStudy ? "Resume" : "Open Study Hub"}
+            <ArrowRight size={16} />
+          </Link>
+          <Link href="/dashboard/cbt" className="text-sm font-medium text-primary hover:underline">
+            Take a CBT exam
+          </Link>
         </div>
       </section>
 
-      <section className="grid gap-3 xl:grid-cols-4">
-        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400">
-              <Flame size={20} />
-            </div>
-            <div>
-              <p className={`text-xs ${muted}`}>Study streak</p>
-              <h3 className={`text-2xl font-bold ${heading}`}>{studyStreak.current}</h3>
-            </div>
-          </div>
-          <div className="mt-3 space-y-2 text-xs">
-            <p className={muted}>Longest streak: {studyStreak.longest} days</p>
-            <p className={muted}>Freeze count: {studyStreak.freeze}</p>
-          </div>
-        </div>
-
-        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#16a34a]/10 text-[#16a34a]">
-              <Zap size={20} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className={`text-xs ${muted}`}>Daily challenge</p>
-              <h3 className={`text-sm font-semibold ${heading}`}>Today&apos;s challenge</h3>
-            </div>
-          </div>
-
-          {challenge ? (
-            <div className="mt-3 space-y-2">
-              <p className={`text-sm font-medium ${heading}`}>{challenge.question}</p>
-              <div className="grid gap-2">
-                {[
-                  challenge.option_a,
-                  challenge.option_b,
-                  challenge.option_c,
-                  challenge.option_d,
-                ].map((option, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => setChallengeChoice(String(index))}
-                    className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
-                      challengeChoice === String(index)
-                        ? "border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]"
-                        : isDark
-                          ? "border-white/10 bg-white/5 text-slate-200"
-                          : "border-gray-200 bg-white text-gray-700"
-                    }`}
-                  >
-                    {String.fromCharCode(65 + index)}. {option}
-                  </button>
-                ))}
-              </div>
-
-              {!challengeAttempt && (
-                <button
-                  onClick={submitDailyChallenge}
-                  disabled={!challengeChoice}
-                  className="mt-2 inline-flex rounded-lg bg-[#16a34a] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  Submit answer
-                </button>
-              )}
-
-              {challengeFeedback && (
-                <p className={`text-xs ${challengeFeedback.correct ? "text-emerald-400" : "text-red-400"}`}>
-                  {challengeFeedback.correct ? "Correct" : "Incorrect"}: {challengeFeedback.explanation}
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className={`mt-3 text-sm ${muted}`}>No challenge today - check back tomorrow.</p>
-          )}
-        </div>
-
-        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/10 text-sky-400">
-              <TrendingUp size={20} />
-            </div>
-            <div>
-              <p className={`text-xs ${muted}`}>Anonymous stats</p>
-              <h3 className={`text-sm font-semibold ${heading}`}>Students studying today</h3>
-            </div>
-          </div>
-          <div className="mt-3 space-y-2">
-            {anonymousStats.length === 0 ? (
-              <p className={`text-sm ${muted}`}>No activity yet.</p>
-            ) : (
-              anonymousStats.map((stat) => (
-                <p key={stat.subject} className={`text-xs ${muted}`}>
-                  {stat.students_studied_today} students studied {stat.subject} today
-                </p>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10 text-violet-400">
-              <CalendarDays size={20} />
-            </div>
-            <div>
-              <p className={`text-xs ${muted}`}>Exam countdown</p>
-              <h3 className={`text-sm font-semibold ${heading}`}>Upcoming exam</h3>
-            </div>
-          </div>
-
-          {examCountdowns.length > 0 ? (
-            <div className="mt-3 space-y-2">
-              {examCountdowns.map((item) => (
-                <p key={item.id} className={`text-xs ${muted}`}>
-                  Your {item.exam_name} is in {Math.max(0, Math.ceil((new Date(item.exam_date).getTime() - Date.now()) / 86400000))} days.
-                </p>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-3 space-y-2">
-              <p className={`text-xs ${muted}`}>No exam saved yet.</p>
-              <input value={examName} onChange={(e) => setExamName(e.target.value)} placeholder="Exam name" className={`w-full rounded-lg border px-2 py-2 text-xs ${isDark ? "border-white/10 bg-black/20 text-white" : "border-gray-200 bg-gray-50 text-gray-900"}`} />
-              <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={`w-full rounded-lg border px-2 py-2 text-xs ${isDark ? "border-white/10 bg-black/20 text-white" : "border-gray-200 bg-gray-50 text-gray-900"}`} />
-              <button onClick={addExamCountdown} disabled={savingExam} className="inline-flex rounded-lg bg-[#16a34a] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
-                {savingExam ? "Saving..." : "Add exam"}
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Stat cards */}
-      <section className="grid gap-2 sm:gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: "Questions Answered", value: loading ? "..." : questionsAnswered, icon: ClipboardList, color: "text-emerald-400 bg-emerald-500/15" },
-          { label: "CBT Tests Taken", value: loading ? "..." : cbtTestsTaken, icon: Monitor, color: "text-violet-400 bg-violet-500/15" },
-          { label: "Average Score", value: loading ? "..." : `${averageScore}%`, icon: Trophy, color: "text-amber-400 bg-amber-500/15" },
-          // No tokens table exists yet — kept honestly at 0 rather than fabricated
-          { label: "Tokens Earned", value: 0, icon: Sparkles, color: "text-sky-400 bg-sky-500/15" },
-        ].map((stat) => (
-          <div key={stat.label} className={`rounded-xl ${cardBg} p-3 sm:p-4 ${cardShadow}`}>
-            <div className="flex items-center justify-between">
-              <span className={`text-xs ${muted}`}>{stat.label}</span>
-              <span className={`flex h-8 w-8 items-center justify-center rounded-full ${stat.color}`}>
-                <stat.icon className="h-4 w-4" />
-              </span>
-            </div>
-            <div className={`mt-2 text-xl font-semibold sm:text-2xl ${heading}`}>{stat.value}</div>
+      {/* Stats */}
+      <section className="grid grid-cols-3 gap-2 sm:gap-3">
+        {stats.map((stat) => (
+          <div key={stat.label} className="rounded-2xl border border-line bg-surface p-3">
+            <stat.icon size={18} className={stat.color} />
+            <p className="mt-1.5 text-base font-semibold text-fg sm:text-lg">{stat.value}</p>
+            <p className="text-xs text-muted">{stat.label}</p>
           </div>
         ))}
       </section>
 
-      {/* Progress / Activity / Sidebar */}
-      <section className="grid gap-3 xl:grid-cols-3 items-start">
-        {/* Study Progress Overview */}
-        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
-          <h3 className={`flex items-center gap-2 text-sm font-semibold ${heading}`}>
-            <TrendingUp size={15} className="text-[#22c55e]" /> Study Progress Overview
-          </h3>
-          <div className="mt-4 flex flex-col items-center gap-5 sm:flex-row sm:items-start">
-            <ProgressDonut percent={overallProgress} isDark={isDark} />
-            <div className="w-full space-y-2.5">
-              {subjects.length === 0 && <p className={`text-sm ${muted}`}>No subjects added yet.</p>}
-              {subjects.slice(0, 4).map((subject) => {
-                const pct = subjectProgress[subject.id] || 0;
-                return (
-                  <div key={subject.id}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className={heading}>{subject.name}</span>
-                      <span className={muted}>{pct}%</span>
-                    </div>
-                    <div className={`mt-1 h-2 overflow-hidden rounded-full ${trackBg}`}>
-                      <div
-                        className="h-full rounded-full bg-[#16a34a] transition-all duration-300"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+      {/* Daily goal */}
+      <section className={card}>
+        <div className="flex items-center gap-3">
+          <span className={iconTile}>
+            <Target size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-fg">Daily goal</p>
+            <p className="text-xs text-muted">
+              {dailyGoal
+                ? `Answer ${dailyGoal.target} questions today`
+                : "Set how many questions you want to answer each day."}
+            </p>
           </div>
-          <Link
-            href="/dashboard/progress"
-            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#22c55e] hover:underline"
-          >
-            View full progress <ArrowRight size={14} />
-          </Link>
-        </div>
-
-        {/* Recent Activity */}
-        <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
-          <h3 className={`flex items-center gap-2 text-sm font-semibold ${heading}`}>
-            <Clock size={15} className="text-[#22c55e]" /> Recent Activity
-          </h3>
-          <div className="mt-4 space-y-3.5">
-            {recentActivity.length === 0 ? (
-              <div className={`flex flex-col items-center gap-2 py-6 text-center ${muted}`}>
-                <Clock size={24} className="opacity-50" />
-                <p className="text-sm">No recent activity yet.</p>
-                <p className="text-xs">Start studying to see your progress here.</p>
-              </div>
-            ) : (
-              recentActivity.map((item) => (
-                <div key={item.id} className="flex items-start gap-3">
-                  <span className="mt-0.5">{activityIcon(item.type)}</span>
-                  <div className="flex-1">
-                    <p className={`text-sm font-semibold ${heading}`}>{item.title}</p>
-                    {item.description && <p className={`text-xs ${muted}`}>{item.description}</p>}
-                  </div>
-                  <span className={`whitespace-nowrap text-xs ${muted}`}>{formatRelativeTime(item.created_at)}</span>
-                </div>
-              ))
-            )}
-          </div>
-          {recentActivity.length > 0 && (
-            <Link
-              href="/dashboard/notifications"
-              className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#22c55e] hover:underline"
-            >
-              View all activity <ArrowRight size={14} />
+          {dailyGoal && (
+            <Link href="/dashboard/study-hub" className={primaryButton}>
+              Start
             </Link>
           )}
         </div>
 
-        {/* Sidebar: Tip of the Day + Daily Goal */}
-        <div className="space-y-3">
-          <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
-            <div className="flex items-center gap-3">
-              <span className={`flex h-9 w-9 items-center justify-center rounded-full ${subtleBg} text-amber-400`}>
-                <Lightbulb className="h-4 w-4" />
-              </span>
-              <h3 className={`text-sm font-semibold ${heading}`}>Tip of the Day</h3>
+        {dailyGoal ? (
+          <div className="mt-3 flex items-center gap-3">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-line">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.round((dailyGoal.completed / dailyGoal.target) * 100))}%` }}
+              />
             </div>
-            <p className={`mt-3 text-sm italic ${muted}`}>&ldquo;{tipOfTheDay}&rdquo;</p>
+            <span className="whitespace-nowrap text-xs text-muted">
+              {dailyGoal.completed} / {dailyGoal.target}
+            </span>
           </div>
+        ) : (
+          <div className="mt-3 flex gap-2">
+            <input
+              type="number"
+              min={1}
+              value={goalInput}
+              onChange={(e) => setGoalInput(e.target.value)}
+              className={`${fieldClass} w-24`}
+              aria-label="Daily question goal"
+            />
+            <button onClick={saveGoal} disabled={savingGoal} className={primaryButton}>
+              {savingGoal ? "Saving..." : "Set goal"}
+            </button>
+          </div>
+        )}
+      </section>
 
-          <div className={`rounded-xl ${cardBg} p-4 ${cardShadow}`}>
-            <div className="flex items-center gap-3">
-              <span className={`flex h-9 w-9 items-center justify-center rounded-full ${subtleBg} text-[#22c55e]`}>
-                <Target className="h-4 w-4" />
-              </span>
-              <h3 className={`text-sm font-semibold ${heading}`}>Daily Goal</h3>
+      {/* Your subjects */}
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-fg">Your subjects</h2>
+          <Link href="/dashboard/study-hub" className="text-sm font-medium text-primary hover:underline">
+            {subjects.length > 3 ? `See all ${subjects.length}` : "See all"}
+          </Link>
+        </div>
+
+        {!subjectsLoading && !hasChosen && subjects.length > 0 && (
+          <div className="mb-2 flex items-center justify-between gap-3 rounded-xl bg-raised px-3 py-2 text-xs text-muted">
+            <span>Showing every subject. Choose the ones you offer.</span>
+            <Link href="/dashboard/settings" className="flex-shrink-0 font-medium text-primary hover:underline">
+              Choose subjects
+            </Link>
+          </div>
+        )}
+
+        {subjectsLoading || loading ? (
+          <div className="animate-pulse space-y-px overflow-hidden rounded-2xl border border-line bg-surface">
+            <div className="h-14 bg-raised" />
+            <div className="h-14 bg-raised" />
+            <div className="h-14 bg-raised" />
+          </div>
+        ) : subjects.length === 0 ? (
+          <div className="rounded-2xl border border-line bg-surface p-6 text-center text-sm text-muted">
+            No subjects have been added yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+            {visibleSubjects.map((subject) => {
+              const count = questionCounts[subject.id] || 0;
+              const pct = subjectProgress[subject.id] || 0;
+              return (
+                <Link
+                  key={subject.id}
+                  href={`/dashboard/study-hub/${subject.id}`}
+                  className="block px-4 py-3 transition hover:bg-raised"
+                >
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className={`font-medium ${count > 0 ? "text-fg" : "text-muted"}`}>{subject.name}</span>
+                    <span className="text-xs text-muted">{count > 0 ? `${pct}%` : "No questions yet"}</span>
+                  </div>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-line">
+                    <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${pct}%` }} />
+                  </div>
+                  {count > 0 && <p className="mt-1 text-xs text-muted">{count} questions</p>}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Also today */}
+      {showMore && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-fg">Also today</h2>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {/* Tip of the day */}
+            <div className={card}>
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] bg-raised text-highlight">
+                  <Lightbulb size={18} />
+                </span>
+                <p className="text-sm font-semibold text-fg">Tip of the day</p>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-muted">{tipOfTheDay}</p>
             </div>
 
-            {dailyGoal ? (
-              <>
-                <p className={`mt-3 text-sm ${muted}`}>Answer {dailyGoal.target} questions today</p>
-                <div className="mt-3 flex items-center gap-3">
-                  <div className={`h-2 flex-1 overflow-hidden rounded-full ${trackBg}`}>
-                    <div
-                      className="h-full rounded-full bg-[#16a34a] transition-all duration-300"
-                      style={{ width: `${Math.min(100, Math.round((dailyGoal.completed / dailyGoal.target) * 100))}%` }}
-                    />
+            {/* Exam countdown */}
+            <div className={card}>
+              <div className="flex items-center gap-3">
+                <span className={iconTile}>
+                  <CalendarDays size={18} />
+                </span>
+                <p className="text-sm font-semibold text-fg">Exam countdown</p>
+              </div>
+
+              {examCountdowns.length > 0 ? (
+                <div className="mt-3 space-y-1.5">
+                  {examCountdowns.map((item) => {
+                    const days = daysUntil(item.exam_date);
+                    return (
+                      <p key={item.id} className="text-sm text-muted">
+                        Your {item.exam_name} is {days === 0 ? "today" : `in ${days} day${days === 1 ? "" : "s"}`}.
+                      </p>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted">No exam saved yet.</p>
+              )}
+
+              {showExamForm ? (
+                <div className="mt-3 space-y-2">
+                  <input
+                    value={examName}
+                    onChange={(e) => setExamName(e.target.value)}
+                    placeholder="Exam name"
+                    className={fieldClass}
+                  />
+                  <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={fieldClass} />
+                  <div className="flex gap-2">
+                    <button onClick={addExamCountdown} disabled={savingExam || !examName.trim() || !examDate} className={primaryButton}>
+                      {savingExam ? "Saving..." : "Save exam"}
+                    </button>
+                    <button onClick={() => setShowExamForm(false)} className={secondaryButton}>
+                      Cancel
+                    </button>
                   </div>
-                  <span className={`whitespace-nowrap text-xs ${muted}`}>
-                    {dailyGoal.completed} / {dailyGoal.target}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowExamForm(true)}
+                  className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  <Plus size={14} /> Add an exam date
+                </button>
+              )}
+            </div>
+
+            {/* Daily challenge: only when there is one today */}
+            {challenge && (
+              <div className={`${card} md:col-span-2`}>
+                <div className="flex items-center gap-3">
+                  <span className={iconTile}>
+                    <Zap size={18} />
                   </span>
+                  <p className="text-sm font-semibold text-fg">Daily challenge</p>
+                </div>
+                <p className="mt-3 text-sm font-medium text-fg">{challenge.question}</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {[challenge.option_a, challenge.option_b, challenge.option_c, challenge.option_d].map((option, index) => {
+                    if (!option) return null;
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        disabled={!!challengeAttempt}
+                        onClick={() => setChallengeChoice(index)}
+                        className={`rounded-xl border px-3 py-2.5 text-left text-sm transition disabled:cursor-default ${challengeOptionClass(index)}`}
+                      >
+                        {String.fromCharCode(65 + index)}. {option}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {!challengeAttempt && (
+                  <button onClick={submitDailyChallenge} disabled={challengeChoice === null} className={`${primaryButton} mt-3`}>
+                    Submit answer
+                  </button>
+                )}
+
+                {challengeResult && (
+                  <p className={`mt-3 text-sm ${challengeResult.correct ? "text-primary" : "text-danger"}`}>
+                    {challengeResult.correct ? "Correct" : "Incorrect"}
+                    {challengeResult.explanation ? `: ${challengeResult.explanation}` : ""}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Recent activity: only when there is some */}
+            {recentActivity.length > 0 && (
+              <div className={card}>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] bg-raised text-muted">
+                    <Clock size={18} />
+                  </span>
+                  <p className="text-sm font-semibold text-fg">Recent activity</p>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {recentActivity.map((item) => (
+                    <div key={item.id} className="flex items-start gap-3">
+                      <span className="mt-0.5">{activityIcon(item.type)}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-fg">{item.title}</p>
+                        {item.description && <p className="text-xs text-muted">{item.description}</p>}
+                      </div>
+                      <span className="whitespace-nowrap text-xs text-muted">{formatRelativeTime(item.created_at)}</span>
+                    </div>
+                  ))}
                 </div>
                 <Link
-                  href="/dashboard/study-hub"
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e]"
+                  href="/dashboard/notifications"
+                  className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                 >
-                  <span>🚀</span> Let's go!
+                  View all activity <ArrowRight size={14} />
                 </Link>
-              </>
-            ) : (
-              <div className="mt-3 space-y-2">
-                <p className={`text-sm ${muted}`}>Set how many questions you want to answer daily.</p>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    value={goalInput}
-                    onChange={(e) => setGoalInput(e.target.value)}
-                    className={`w-20 rounded-lg px-3 py-2 text-sm ${
-                      isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-900"
-                    } focus:outline-none focus:ring-2 focus:ring-[#16a34a]`}
-                  />
-                  <button
-                    onClick={saveGoal}
-                    disabled={savingGoal}
-                    className="inline-flex items-center gap-1 rounded-lg bg-[#16a34a] px-3 py-2 text-sm font-semibold text-[#052e16] hover:bg-[#22c55e] disabled:opacity-60"
-                  >
-                    <span>🚀</span>
-                    {savingGoal ? "Saving..." : "Set Goal"}
-                  </button>
+              </div>
+            )}
+
+            {/* Anonymous stats: only when there are some */}
+            {anonymousStats.length > 0 && (
+              <div className={card}>
+                <p className="text-sm font-semibold text-fg">Students studying today</p>
+                <div className="mt-3 space-y-1.5">
+                  {anonymousStats.map((stat) => (
+                    <p key={stat.subject} className="text-sm text-muted">
+                      {stat.students_studied_today} students studied {stat.subject} today
+                    </p>
+                  ))}
                 </div>
               </div>
             )}
           </div>
-        </div>
-      </section>
-
-      {/* Your Subjects */}
-      <section>
-        <h3 className={`mb-2 text-sm font-semibold ${heading}`}>Your Subjects</h3>
-        <div className="grid gap-2">
-          {subjects.map((subject) => (
-            <div key={subject.id} className={`rounded-xl ${cardBg} p-3 sm:p-4 ${cardShadow}`}>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className={`text-base font-semibold ${heading}`}>{subject.name}</h2>
-                  {subject.description && <p className={`mt-0.5 text-sm ${muted}`}>{subject.description}</p>}
-                </div>
-                <Link
-                  href="/dashboard/study-hub"
-                  className="inline-flex items-center rounded-full bg-[#16a34a] px-4 py-1.5 text-sm font-semibold text-[#052e16] transition hover:bg-[#22c55e]"
-                >
-                  Study Now
-                </Link>
-              </div>
-
-              <div className={`mt-3 h-2 overflow-hidden rounded-full ${trackBg}`}>
-                <div
-                  className="h-full rounded-full bg-[#16a34a] transition-all duration-300"
-                  style={{ width: `${subjectProgress[subject.id] || 0}%` }}
-                />
-              </div>
-              <div className={`mt-1.5 flex items-center justify-between text-sm ${muted}`}>
-                <span>{subjectProgress[subject.id] || 0}% progress</span>
-                <span>{questionCounts[subject.id] || 0} questions available</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Footer message */}
-      <div className={`flex flex-col gap-1 pt-2 text-xs sm:flex-row sm:items-center sm:justify-between ${muted}`}>
-        <p>Stay focused and keep pushing forward. You're doing great! 💪</p>
-        <p>EduPrime © {new Date().getFullYear()}</p>
-      </div>
+        </section>
+      )}
     </div>
   );
 }

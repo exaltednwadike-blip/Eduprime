@@ -1,149 +1,161 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { useToast } from "@/components/ToastContext";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import AuthShell, { GoogleButton, Notice, OrDivider, PasswordInput, fieldClass, primaryButton } from "@/components/AuthShell";
 
-export default function SigninPage() {
+export default function SignInPage() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const { showToast } = useToast();
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [unconfirmed, setUnconfirmed] = useState(false);
 
-  // If already logged in, redirect to dashboard immediately
   useEffect(() => {
-    const check = async () => {
+    document.documentElement.style.background = "";
+    (async () => {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
-        window.location.replace("/dashboard");
-      } else {
-        setChecking(false);
+        router.replace("/dashboard");
+        return;
       }
-    };
-    check();
-  }, []);
+      setChecking(false);
+    })();
+  }, [router]);
 
-  const handleSignIn = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    setUnconfirmed(false);
+
     if (!email.trim() || !password) {
-      showToast({ type: "error", title: "Sign in failed", message: "Please enter both email and password." });
+      setError("Enter your email and password.");
       return;
     }
+
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error || !data?.session) {
-      const msg = error?.message?.toLowerCase() || "";
-      if (msg.includes("invalid") || msg.includes("credentials")) {
-        showToast({ type: "error", title: "Sign in failed", message: "Incorrect email or password. Please try again." });
-      } else if (msg.includes("not found") || msg.includes("no user")) {
-        showToast({ type: "error", title: "Account not found", message: "No account found with this email. Please sign up." });
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+
+    if (signInError) {
+      setLoading(false);
+      const message = signInError.message.toLowerCase();
+      if (message.includes("not confirmed")) {
+        setUnconfirmed(true);
+        setError("Please confirm your email first. Check your inbox for the link.");
+      } else if (message.includes("invalid login")) {
+        setError("Wrong email or password.");
       } else {
-        showToast({ type: "error", title: "Sign in failed", message: "Something went wrong. Please try again." });
+        setError(signInError.message);
       }
       return;
     }
-    showToast({ type: "success", title: "Welcome back!", message: "You have signed in successfully." });
-    window.location.replace("/dashboard");
+
+    router.replace("/dashboard");
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogle = async () => {
+    setError("");
     setGoogleLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`,
-      },
+      options: { redirectTo: `${window.location.origin}/dashboard` },
     });
-    if (error) {
-      showToast({ type: "error", title: "Sign in failed", message: "Unable to sign in with Google." });
+    if (oauthError) {
       setGoogleLoading(false);
+      setError(oauthError.message);
     }
+  };
+
+  const handleResend = async () => {
+    setError("");
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (resendError) {
+      setError(resendError.message);
+      return;
+    }
+    setUnconfirmed(false);
+    setInfo("We sent a new confirmation email. Check your inbox.");
+  };
+
+  const handleForgot = async () => {
+    setError("");
+    setInfo("");
+    if (!email.trim()) {
+      setError("Type your email above first, then tap Forgot password.");
+      return;
+    }
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (resetError) {
+      setError(resetError.message);
+      return;
+    }
+    setInfo(`If an account exists for ${email.trim()}, we sent a link to reset the password.`);
   };
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#052e16]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#052e16] text-white">
-      <header className="border-b border-white/10 bg-[#052e16] px-6 py-4 sm:px-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="EduPrime" className="h-10 w-auto" />
-          </Link>
+    <AuthShell title="Welcome back" subtitle="Sign in to carry on studying.">
+      <GoogleButton label="Continue with Google" onClick={handleGoogle} loading={googleLoading} />
+      <OrDivider />
+
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          autoComplete="email"
+          className={fieldClass}
+        />
+        <PasswordInput value={password} onChange={setPassword} placeholder="Password" autoComplete="current-password" />
+
+        <div className="text-right">
+          <button type="button" onClick={handleForgot} className="text-sm font-medium text-primary hover:underline">
+            Forgot password?
+          </button>
         </div>
-      </header>
 
-      <main className="flex min-h-[calc(100vh-64px)] items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md rounded-3xl bg-[#064e23] p-8 shadow-xl">
-          <h1 className="text-3xl font-semibold text-white">Welcome Back</h1>
-          <p className="mt-2 text-sm text-slate-400">Sign in to access your study hub.</p>
+        {error && <Notice kind="error">{error}</Notice>}
+        {unconfirmed && (
+          <button type="button" onClick={handleResend} className="text-sm font-medium text-primary hover:underline">
+            Resend confirmation email
+          </button>
+        )}
+        {info && <Notice kind="info">{info}</Notice>}
 
-          <div className="mt-8 space-y-4">
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={googleLoading}
-              className="flex w-full items-center justify-center gap-3 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#052e16] transition hover:bg-slate-100 disabled:opacity-70"
-            >
-              <span className="text-lg font-bold">G</span>
-              <span>{googleLoading ? "Continuing..." : "Continue with Google"}</span>
-            </button>
+        <button type="submit" disabled={loading} className={primaryButton}>
+          {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+          {loading ? "Signing in..." : "Sign in"}
+        </button>
+      </form>
 
-            <div className="flex items-center gap-3">
-              <hr className="flex-1 border-white/10" />
-              <span className="text-sm text-slate-400">or</span>
-              <hr className="flex-1 border-white/10" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleSignIn}
-              disabled={loading}
-              className="w-full rounded-full bg-[#1a5c2a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2db54a] disabled:opacity-70"
-            >
-              {loading ? "Signing in..." : "Sign In"}
-            </button>
-
-            <p className="text-center text-sm text-slate-400">
-              Do not have an account?{" "}
-              <Link href="/signup" className="font-semibold text-[#86efac] hover:underline">
-                Sign Up
-              </Link>
-            </p>
-          </div>
-        </div>
-      </main>
-    </div>
+      <p className="mt-6 text-center text-sm text-muted">
+        New to EduPrime?{" "}
+        <Link href="/signup" className="font-medium text-primary hover:underline">
+          Create an account
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

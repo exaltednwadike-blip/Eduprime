@@ -106,7 +106,10 @@ export default function StudyHubTopicPage() {
       setSubject((subjectRes.data as Subject | null) ?? null);
       setCategory((categoryRes.data as Category | null) ?? null);
       setTopic((topicRes.data as Topic | null) ?? null);
-      setQuestions((questionsRes.data as Question[]) || []);
+      const loadedQuestions = (questionsRes.data as Question[]) || [];
+      setQuestions(loadedQuestions);
+      const startAt = Number(new URLSearchParams(window.location.search).get("q"));
+      setCurrentIndex(Number.isInteger(startAt) && startAt > 0 && startAt < loadedQuestions.length ? startAt : 0);
       setLoading(false);
     };
 
@@ -126,6 +129,27 @@ export default function StudyHubTopicPage() {
   const isMcqQuestion = currentQuestion ? isMcq(currentQuestion) : false;
   const correctIndex = currentQuestion ? getCorrectIndex(currentQuestion.correct_option) : null;
   const progressPercent = questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0;
+  useEffect(() => {
+    if (!subject || !topic || questions.length === 0) return;
+    if (String(topic.id) !== String(topicId)) return;
+    try {
+      localStorage.setItem(
+        "eduprimeLastStudy",
+        JSON.stringify({
+          subjectId,
+          categoryId,
+          topicId,
+          subjectName: subject.name,
+          topicName: topic.name,
+          index: currentIndex,
+          total: questions.length,
+        })
+      );
+    } catch {
+      // storage can be unavailable (private mode); resuming is only a convenience
+    }
+  }, [subject, topic, questions.length, currentIndex, subjectId, categoryId, topicId]);
+
   const isLastQuestion = currentIndex >= questions.length - 1;
 
   const questionOptions = useMemo(() => {

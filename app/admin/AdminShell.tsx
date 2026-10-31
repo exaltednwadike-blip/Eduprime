@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LayoutDashboard, BookOpen, Layers, Tag, List, UploadCloud, ArrowLeft, BookMarked, Menu, X } from "lucide-react";
+import { LayoutDashboard, BookOpen, Layers, Tag, List, UploadCloud, ArrowLeft, BookMarked, Menu, X, ListChecks } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/questions", label: "Questions", icon: List },
   { href: "/admin/flashcards", label: "Flashcards", icon: BookMarked },
   { href: "/admin/bulk-upload", label: "Bulk Upload", icon: UploadCloud },
+  { href: "/admin/subject-tagging", label: "Subject tagging", icon: ListChecks },
 ];
 
 export function AdminShell({ children, userEmail }: { children: React.ReactNode; userEmail: string }) {
