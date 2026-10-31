@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Check, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useTheme } from "@/app/dashboard/layout";
 
 type Subject = { id: string; name: string };
 type Category = { id: string; subject_id: string; name: string };
@@ -34,11 +33,33 @@ const getCorrectIndex = (value: number | string | null): number | null => {
   const n = Number(v);
   return Number.isNaN(n) ? null : n;
 };
+
+type OptionState = "idle" | "correct" | "wrong" | "dim";
+
+const optionStyles: Record<OptionState, string> = {
+  idle: "border-line bg-surface text-fg hover:border-primary hover:bg-primary-soft",
+  correct: "border-primary bg-primary-soft text-fg",
+  wrong: "border-danger bg-danger-soft text-fg",
+  dim: "border-line bg-surface text-muted",
+};
+
+const badgeStyles: Record<OptionState, string> = {
+  idle: "border border-line bg-canvas text-muted",
+  correct: "bg-primary text-on-primary",
+  wrong: "bg-danger text-on-danger",
+  dim: "border border-line bg-canvas text-muted",
+};
+
+const optionLabels = ["A", "B", "C", "D"];
+
+const secondaryButton =
+  "inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-raised disabled:cursor-not-allowed disabled:opacity-40";
+const primaryButton =
+  "inline-flex items-center justify-center gap-1.5 rounded-[10px] bg-primary px-5 py-2.5 text-sm font-medium text-on-primary transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40";
+
 export default function StudyHubTopicPage() {
   const router = useRouter();
   const params = useParams();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
 
   const subjectId = Array.isArray(params.subject) ? params.subject[0] : params.subject ?? "";
   const categoryId = Array.isArray(params.category) ? params.category[0] : params.category ?? "";
@@ -52,14 +73,6 @@ export default function StudyHubTopicPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [theoryRevealed, setTheoryRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const panel = isDark ? "bg-[#064e23] border border-white/10" : "bg-white border border-gray-200";
-  const heading = isDark ? "text-white" : "text-gray-900";
-  const body = isDark ? "text-slate-300" : "text-gray-600";
-  const muted = isDark ? "text-slate-400" : "text-gray-500";
-  const soft = isDark ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200";
-  const badge = isDark ? "bg-[#16a34a]/20 text-[#86efac]" : "bg-[#16a34a]/10 text-[#15803d]";
-  const explanationBg = isDark ? "bg-white/5 border border-white/10" : "bg-gray-50 border border-gray-200";
 
   useEffect(() => {
     const level = localStorage.getItem("eduprimeLevel");
@@ -113,7 +126,7 @@ export default function StudyHubTopicPage() {
   const isMcqQuestion = currentQuestion ? isMcq(currentQuestion) : false;
   const correctIndex = currentQuestion ? getCorrectIndex(currentQuestion.correct_option) : null;
   const progressPercent = questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0;
-  const optionLabels = ["A", "B", "C", "D"];
+  const isLastQuestion = currentIndex >= questions.length - 1;
 
   const questionOptions = useMemo(() => {
     if (!currentQuestion) return [] as Array<{ label: string; value: string | null }>;
@@ -130,88 +143,79 @@ export default function StudyHubTopicPage() {
     setSelectedAnswer(index);
   };
 
-  const getOptionClassName = (index: number) => {
-    if (selectedAnswer === null) {
-      return isDark
-        ? "border-white/10 bg-white/5 text-white hover:border-[#16a34a] hover:bg-white/10"
-        : "border-gray-200 bg-white text-gray-900 hover:border-[#16a34a]";
-    }
-    if (index === correctIndex) {
-      return isDark
-        ? "border-green-500 bg-green-500/20 text-green-300"
-        : "border-green-500 bg-green-50 text-green-800";
-    }
-    if (index === selectedAnswer) {
-      return isDark
-        ? "border-red-500 bg-red-500/20 text-red-300"
-        : "border-red-500 bg-red-50 text-red-800";
-    }
-    return isDark
-      ? "border-white/10 bg-white/5 text-slate-400 opacity-60"
-      : "border-gray-200 bg-gray-50 text-gray-400 opacity-70";
+  const getOptionState = (index: number): OptionState => {
+    if (selectedAnswer === null) return "idle";
+    if (index === correctIndex) return "correct";
+    if (index === selectedAnswer) return "wrong";
+    return "dim";
   };
 
-  const isLastQuestion = currentIndex >= questions.length - 1;
-
   return (
-    <div className="space-y-4 p-4 sm:p-6">
-      <div className={`rounded-xl ${panel} p-4`}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${muted}`}>
-              {subject?.name || "Subject"} / {category?.name || "Category"} / {topic?.name || "Topic"}
-            </p>
-            <h1 className={`mt-1 text-xl font-bold ${heading}`}>
-              {loading ? "Loading..." : topic?.name || "Topic"}
-            </h1>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => router.push(`/dashboard/study-hub/${subjectId}/${categoryId}`)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#22c55e]"
-          >
-            <ArrowLeft size={16} />
-            Back to Topics
-          </button>
+    <div className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs text-muted">
+            {subject?.name || "Subject"} / {category?.name || "Category"}
+          </p>
+          <h1 className="mt-1 text-xl font-semibold text-fg">
+            {loading ? "Loading..." : topic?.name || "Topic"}
+          </h1>
         </div>
+
+        <button
+          type="button"
+          onClick={() => router.push(`/dashboard/study-hub/${subjectId}/${categoryId}`)}
+          className={`${secondaryButton} flex-shrink-0 self-start`}
+        >
+          <ArrowLeft size={16} />
+          Back to topics
+        </button>
       </div>
 
       {loading ? (
-        <div className={`rounded-xl ${panel} p-12`}>
-          <div className="flex items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#16a34a] border-t-transparent" />
+        <div className="animate-pulse space-y-4">
+          <div className="h-1 rounded-full bg-line" />
+          <div className="space-y-3 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+            <div className="h-5 w-3/4 rounded bg-line" />
+            <div className="h-12 rounded-xl bg-raised" />
+            <div className="h-12 rounded-xl bg-raised" />
+            <div className="h-12 rounded-xl bg-raised" />
+            <div className="h-12 rounded-xl bg-raised" />
           </div>
         </div>
       ) : questions.length === 0 ? (
-        <div className={`rounded-xl ${panel} p-8 text-center`}>
-          <p className={`text-sm ${body}`}>No questions found for this topic yet.</p>
+        <div className="rounded-2xl border border-line bg-surface p-8 text-center">
+          <p className="text-sm text-muted">No questions found for this topic yet.</p>
         </div>
       ) : (
-        <div className={`rounded-xl ${panel} p-4 sm:p-6`}>
-          <div className="mb-5">
-            <div className="mb-2 flex items-center justify-between text-xs font-medium">
-              <span className={muted}>Question {currentIndex + 1} of {questions.length}</span>
-              <span className={badge}>
+        <>
+          <div>
+            <div className="mb-2 flex items-center justify-between text-xs">
+              <span className="text-muted">
+                Question {currentIndex + 1} of {questions.length}
+              </span>
+              <span className="rounded-full bg-primary-soft px-2.5 py-0.5 font-medium text-primary">
                 {isMcqQuestion ? "MCQ" : "Theory"}
               </span>
             </div>
-            <div className={`h-2 overflow-hidden rounded-full ${soft}`}>
+            <div className="h-1 overflow-hidden rounded-full bg-line">
               <div
-                className="h-full rounded-full bg-[#16a34a] transition-all duration-300"
+                className="h-full rounded-full bg-primary transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
 
-          <div className={`rounded-xl border p-4 sm:p-5 ${soft}`}>
-            <h2 className={`text-lg font-semibold ${heading}`}>{currentQuestion?.question}</h2>
+          <div className="rounded-2xl border border-line bg-surface p-4 sm:p-6">
+            <p className="text-[17px] font-medium leading-relaxed text-fg sm:text-lg">
+              {currentQuestion?.question}
+            </p>
 
             {isMcqQuestion ? (
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-2.5">
                 {questionOptions.map((option, index) => {
-                  const value = option.value ?? "";
-                  if (!value) return null;
+                  if (!option.value) return null;
+                  const state = getOptionState(index);
 
                   return (
                     <button
@@ -219,12 +223,20 @@ export default function StudyHubTopicPage() {
                       type="button"
                       onClick={() => handleOptionSelect(index)}
                       disabled={selectedAnswer !== null}
-                      className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition ${getOptionClassName(index)}`}
+                      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left text-[15px] leading-snug transition disabled:cursor-default ${optionStyles[state]}`}
                     >
-                      <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#16a34a]/20 text-xs font-bold text-[#16a34a]">
-                        {optionLabels[index]}
+                      <span
+                        className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-medium ${badgeStyles[state]}`}
+                      >
+                        {state === "correct" ? (
+                          <Check size={14} />
+                        ) : state === "wrong" ? (
+                          <X size={14} />
+                        ) : (
+                          optionLabels[index]
+                        )}
                       </span>
-                      <span className="flex-1 leading-relaxed">{value}</span>
+                      <span className="flex-1">{option.value}</span>
                     </button>
                   );
                 })}
@@ -235,21 +247,21 @@ export default function StudyHubTopicPage() {
                   <button
                     type="button"
                     onClick={() => setTheoryRevealed(true)}
-                    className="rounded-lg bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#22c55e]"
+                    className="w-full rounded-xl border border-dashed border-primary/50 bg-primary-soft px-4 py-3 text-sm font-medium text-primary transition hover:border-primary"
                   >
-                    Reveal Answer
+                    Reveal answer
                   </button>
                 ) : (
                   <div className="space-y-3">
-                    <div className={`rounded-xl border p-3 ${explanationBg}`}>
-                      <p className={`text-xs font-semibold uppercase tracking-wide ${muted}`}>Answer</p>
-                      <p className={`mt-2 text-sm leading-relaxed ${heading}`}>{currentQuestion?.answer}</p>
+                    <div className="rounded-xl border border-primary/30 bg-primary-soft p-3 sm:p-4">
+                      <p className="text-xs font-medium text-primary">Answer</p>
+                      <p className="mt-1.5 text-[15px] leading-relaxed text-fg">{currentQuestion?.answer}</p>
                     </div>
 
                     {currentQuestion?.explanation && (
-                      <div className={`rounded-xl border p-3 ${explanationBg}`}>
-                        <p className={`text-xs font-semibold uppercase tracking-wide ${muted}`}>Explanation</p>
-                        <p className={`mt-2 text-sm leading-relaxed ${body}`}>{currentQuestion.explanation}</p>
+                      <div className="rounded-xl bg-raised p-3 sm:p-4">
+                        <p className="text-xs font-medium text-muted">Explanation</p>
+                        <p className="mt-1.5 text-sm leading-relaxed text-fg">{currentQuestion.explanation}</p>
                       </div>
                     )}
                   </div>
@@ -258,34 +270,31 @@ export default function StudyHubTopicPage() {
             )}
 
             {isMcqQuestion && selectedAnswer !== null && (
-              <div className="mt-5 space-y-3">
-                <div className={`rounded-xl border p-3 ${explanationBg}`}>
-                  <p className={`text-xs font-semibold uppercase tracking-wide ${muted}`}>
-                    {selectedAnswer === correctIndex ? "Correct" : "Incorrect"}
-                  </p>
-                  <p className={`mt-2 text-sm leading-relaxed ${heading}`}>
-                    {selectedAnswer === correctIndex
-                      ? "Great job! That is the correct answer."
-                      : `The correct answer is ${optionLabels[correctIndex ?? 0]}.`}
-                  </p>
-                </div>
+              <div className="mt-4 space-y-3">
+                <p
+                  className={`text-sm font-medium ${selectedAnswer === correctIndex ? "text-primary" : "text-danger"}`}
+                >
+                  {selectedAnswer === correctIndex
+                    ? "Correct"
+                    : `Incorrect. The correct answer is ${optionLabels[correctIndex ?? 0]}.`}
+                </p>
 
-                {currentQuestion.explanation && (
-                  <div className={`rounded-xl border p-3 ${explanationBg}`}>
-                    <p className={`text-xs font-semibold uppercase tracking-wide ${muted}`}>Explanation</p>
-                    <p className={`mt-2 text-sm leading-relaxed ${body}`}>{currentQuestion.explanation}</p>
+                {currentQuestion?.explanation && (
+                  <div className="rounded-xl bg-raised p-3 sm:p-4">
+                    <p className="text-xs font-medium text-muted">Explanation</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-fg">{currentQuestion.explanation}</p>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="mt-6 flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => setCurrentIndex((index) => Math.max(0, index - 1))}
               disabled={currentIndex === 0}
-              className="rounded-lg border border-[#16a34a] px-4 py-2 text-sm font-medium text-[#16a34a] transition hover:bg-[#16a34a] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className={secondaryButton}
             >
               Previous
             </button>
@@ -294,12 +303,12 @@ export default function StudyHubTopicPage() {
               type="button"
               onClick={() => setCurrentIndex((index) => Math.min(questions.length - 1, index + 1))}
               disabled={isLastQuestion}
-              className="rounded-lg bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#22c55e] disabled:cursor-not-allowed disabled:opacity-50"
+              className={primaryButton}
             >
-              Next
+              Next question
             </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { ToastProvider } from "@/components/ToastContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Monitor, Users, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, X, Sun, Moon, BookMarked, Trophy } from "lucide-react";
+import { Home, BookOpen, Monitor, Users, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, X, Sun, Moon, BookMarked, Trophy, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { setOffline, updatePresence } from "@/lib/presence";
 
@@ -32,6 +32,16 @@ const sidebarItems = [
   { key: "profile", label: "Profile", href: "/dashboard/profile", icon: User },
 ];
 
+const tabItems = [
+  { key: "home", label: "Home", href: "/dashboard", icon: Home },
+  { key: "study-hub", label: "Study", href: "/dashboard/study-hub", icon: BookOpen },
+  { key: "cbt", label: "CBT", href: "/dashboard/cbt", icon: Monitor },
+  { key: "flashcards", label: "Cards", href: "/dashboard/flashcards", icon: BookMarked },
+];
+
+const isActivePath = (pathname: string | null, href: string) =>
+  pathname === href || (href !== "/dashboard" && !!pathname?.startsWith(href + "/"));
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
@@ -42,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notificationCount, setNotificationCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -126,8 +136,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user, pathname]);
 
   useEffect(() => {
-    document.documentElement.style.background = theme === "dark" ? "#0a1f0f" : "#f9fafb";
+    document.documentElement.style.background = theme === "dark" ? "#0B1210" : "#F6F8F7";
     localStorage.setItem("eduprimeTheme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    return () => document.documentElement.removeAttribute("data-theme");
   }, [theme]);
 
   const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
@@ -158,31 +173,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       "/dashboard/settings": "Settings",
       "/dashboard/profile": "Profile",
     };
-    return titleMap[pathname || ""] || "Dashboard";
+    const path = pathname || "";
+    if (titleMap[path]) return titleMap[path];
+    const match = Object.keys(titleMap)
+      .filter((key) => key !== "/dashboard" && path.startsWith(key + "/"))
+      .sort((a, b) => b.length - a.length)[0];
+    return match ? titleMap[match] : "Dashboard";
   }, [pathname]);
 
   if (!mounted || !authChecked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a1f0f]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
 
   const isDark = theme === "dark";
-  const shellBg = isDark ? "bg-[#0a1f0f]" : "bg-[#f9fafb]";
-  const shellText = isDark ? "text-white" : "text-gray-900";
-  const navBg = isDark ? "bg-[#0f2914]" : "bg-white";
-  const navBorder = isDark ? "border-white/10" : "border-gray-200";
-  const navIcon = isDark ? "text-white/70 hover:bg-white/10" : "text-gray-500 hover:bg-gray-100";
-  const navTitle = isDark ? "text-white" : "text-gray-900";
 
   const SidebarContent = () => (
-    <div className="flex h-full flex-col" style={{ background: "#0f2914" }}>
-      <div className="flex h-16 items-center justify-between border-b border-white/10 px-3">
-        <img src="/logo.png" alt="EduPrime" className="h-9 w-auto" />
+    <div className="flex h-full flex-col border-r border-line bg-surface">
+      <div className="flex h-16 items-center justify-between border-b border-line px-3">
+        <img src={isDark ? "/logo-mark-dark.png" : "/logo-mark-light.png"} alt="EduPrime" className="h-9 w-auto" />
         {isMobile && (
-          <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-1.5 text-white/70 hover:bg-white/10">
+          <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-1.5 text-muted hover:bg-raised hover:text-fg">
             <X size={18} />
           </button>
         )}
@@ -190,14 +204,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <nav className="mt-3 flex-1 space-y-0.5 overflow-y-auto px-2">
         {sidebarItems.map((item) => {
-          const active = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href + "/"));
+          const active = isActivePath(pathname, item.href);
           const Icon = item.icon;
           return (
             <Link
               key={item.key}
               href={item.href}
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                active ? "bg-[#2db54a] text-white font-semibold" : "text-white/70 hover:bg-white/10 hover:text-white"
+                active ? "bg-primary-soft font-semibold text-primary" : "text-muted hover:bg-raised hover:text-fg"
               }`}
             >
               <Icon size={18} />
@@ -209,8 +223,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {isAdmin && (
           <Link
             href="/admin"
-            className={`mt-2 flex items-center gap-3 rounded-lg border border-white/20 px-3 py-2 text-sm font-medium transition-colors ${
-              pathname?.startsWith("/admin") ? "bg-[#2db54a] text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            className={`mt-2 flex items-center gap-3 rounded-lg border border-line px-3 py-2 text-sm font-medium transition-colors ${
+              pathname?.startsWith("/admin") ? "bg-primary-soft text-primary" : "text-muted hover:bg-raised hover:text-fg"
             }`}
           >
             <ShieldAlert size={18} />
@@ -219,16 +233,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
       </nav>
 
-      <div className="border-t border-white/10 p-3">
-        <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-lg p-2 hover:bg-white/10 transition">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#2db54a] text-xs font-bold text-white">
+      <div className="border-t border-line p-3">
+        <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-lg p-2 transition hover:bg-raised">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-primary">
             {getInitials(user?.user_metadata?.full_name, user?.email)}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white capitalize">
+            <p className="truncate text-sm font-semibold capitalize text-fg">
               {getFirstName(user?.user_metadata?.full_name, user?.email)}
             </p>
-            <p className="text-xs text-white/50">View Profile</p>
+            <p className="text-xs text-muted">View Profile</p>
           </div>
         </Link>
       </div>
@@ -238,7 +252,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ThemeContext.Provider value={value}>
       <ToastProvider>
-        <div className={`min-h-screen ${shellBg} ${shellText}`}>
+        <div className="min-h-screen bg-canvas text-fg">
           <div className="flex">
 
             {/* Desktop sidebar */}
@@ -248,7 +262,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </aside>
             )}
 
-            {/* Mobile sidebar overlay */}
+            {/* Mobile menu drawer */}
             {isMobile && sidebarOpen && (
               <>
                 <div className="fixed inset-0 z-30 bg-black/60" onClick={() => setSidebarOpen(false)} />
@@ -260,42 +274,68 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {/* Main content */}
             <div className="flex min-h-screen flex-1 flex-col overflow-hidden">
-              <header className={`flex h-14 flex-shrink-0 items-center justify-between border-b px-4 sm:px-6 ${navBg} ${navBorder}`}>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setSidebarOpen((o) => !o)} className={`rounded-lg p-1.5 ${navIcon}`}>
-                    <Menu size={18} />
-                  </button>
-                  <h2 className={`text-base font-semibold ${navTitle}`}>{pageTitle}</h2>
-                </div>
+              <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-line bg-surface px-4 sm:px-6">
+                <h2 className="text-base font-semibold text-fg">{pageTitle}</h2>
 
-                <div className="flex items-center gap-2">
-                  <button onClick={toggle} className={`rounded-lg p-1.5 ${navIcon}`} title="Toggle theme">
+                <div className="flex items-center gap-1">
+                  <button onClick={toggle} className="rounded-lg p-2 text-muted transition hover:bg-raised hover:text-fg" title="Toggle theme">
                     {isDark ? <Sun size={18} /> : <Moon size={18} />}
                   </button>
-                  <Link href="/dashboard/notifications" className={`relative rounded-lg p-1.5 ${navIcon}`}>
+                  <Link href="/dashboard/notifications" className="relative rounded-lg p-2 text-muted transition hover:bg-raised hover:text-fg">
                     <BellIcon size={18} />
                     {notificationCount > 0 && (
-                      <span className="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#16a34a] px-1 text-[10px] font-bold text-white">
+                      <span className="absolute right-0 top-0 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-on-primary">
                         {notificationCount}
                       </span>
                     )}
                   </Link>
-                  <Link href="/dashboard/profile" className="flex items-center gap-1.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a5c2a] text-xs font-bold text-white">
+                  <Link href="/dashboard/profile" className="ml-1 flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-primary">
                       {getInitials(user?.user_metadata?.full_name, user?.email)}
                     </div>
-                    <span className={`hidden sm:block text-sm font-medium ${navTitle} capitalize`}>
+                    <span className="hidden text-sm font-medium capitalize text-fg sm:block">
                       {getFirstName(user?.user_metadata?.full_name, user?.email)}
                     </span>
                   </Link>
                 </div>
               </header>
 
-              <main className={`flex-1 overflow-auto ${isDark ? "bg-[#0a1f0f]" : "bg-[#f9fafb]"}`}>
+              <main className={`flex-1 overflow-auto bg-canvas ${isMobile ? "pb-20" : ""}`}>
                 {children}
               </main>
             </div>
           </div>
+
+          {/* Mobile bottom tab bar */}
+          {isMobile && (
+            <nav
+              className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-surface px-1 pt-1.5"
+              style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+            >
+              {tabItems.map((item) => {
+                const active = isActivePath(pathname, item.href);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    className={`flex flex-col items-center gap-0.5 rounded-lg py-1 text-[11px] font-medium ${active ? "text-primary" : "text-muted"}`}
+                  >
+                    <Icon size={20} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="flex flex-col items-center gap-0.5 rounded-lg py-1 text-[11px] font-medium text-muted"
+              >
+                <MoreHorizontal size={20} />
+                More
+              </button>
+            </nav>
+          )}
         </div>
       </ToastProvider>
     </ThemeContext.Provider>
