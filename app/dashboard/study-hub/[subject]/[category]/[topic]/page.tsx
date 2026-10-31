@@ -20,9 +20,20 @@ type Question = {
   option_b: string | null;
   option_c: string | null;
   option_d: string | null;
-  correct_option: number | null;
+  correct_option: number | string | null;
 };
 
+const isMcq = (q: Question) => q.type?.trim().toLowerCase() === "mcq";
+
+const getCorrectIndex = (value: number | string | null): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") return value;
+  const v = value.trim().toUpperCase();
+  const letters = ["A", "B", "C", "D"];
+  if (letters.includes(v)) return letters.indexOf(v);
+  const n = Number(v);
+  return Number.isNaN(n) ? null : n;
+};
 export default function StudyHubTopicPage() {
   const router = useRouter();
   const params = useParams();
@@ -99,6 +110,8 @@ export default function StudyHubTopicPage() {
   }, [currentIndex]);
 
   const currentQuestion = questions[currentIndex] ?? null;
+  const isMcqQuestion = currentQuestion ? isMcq(currentQuestion) : false;
+  const correctIndex = currentQuestion ? getCorrectIndex(currentQuestion.correct_option) : null;
   const progressPercent = questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0;
   const optionLabels = ["A", "B", "C", "D"];
 
@@ -118,23 +131,24 @@ export default function StudyHubTopicPage() {
   };
 
   const getOptionClassName = (index: number) => {
-    if (!currentQuestion) return "";
-
     if (selectedAnswer === null) {
       return isDark
         ? "border-white/10 bg-white/5 text-white hover:border-[#16a34a] hover:bg-white/10"
         : "border-gray-200 bg-white text-gray-900 hover:border-[#16a34a]";
     }
-
-    if (index === currentQuestion.correct_option) {
-      return "border-green-500 bg-green-500/20 text-green-300";
+    if (index === correctIndex) {
+      return isDark
+        ? "border-green-500 bg-green-500/20 text-green-300"
+        : "border-green-500 bg-green-50 text-green-800";
     }
-
     if (index === selectedAnswer) {
-      return "border-red-500 bg-red-500/20 text-red-300";
+      return isDark
+        ? "border-red-500 bg-red-500/20 text-red-300"
+        : "border-red-500 bg-red-50 text-red-800";
     }
-
-    return isDark ? "border-white/10 bg-white/5 text-slate-400 opacity-60" : "border-gray-200 bg-gray-50 text-gray-400 opacity-70";
+    return isDark
+      ? "border-white/10 bg-white/5 text-slate-400 opacity-60"
+      : "border-gray-200 bg-gray-50 text-gray-400 opacity-70";
   };
 
   const isLastQuestion = currentIndex >= questions.length - 1;
@@ -179,7 +193,7 @@ export default function StudyHubTopicPage() {
             <div className="mb-2 flex items-center justify-between text-xs font-medium">
               <span className={muted}>Question {currentIndex + 1} of {questions.length}</span>
               <span className={badge}>
-                {currentQuestion?.type === "MCQ" ? "MCQ" : "Theory"}
+                {isMcqQuestion ? "MCQ" : "Theory"}
               </span>
             </div>
             <div className={`h-2 overflow-hidden rounded-full ${soft}`}>
@@ -193,7 +207,7 @@ export default function StudyHubTopicPage() {
           <div className={`rounded-xl border p-4 sm:p-5 ${soft}`}>
             <h2 className={`text-lg font-semibold ${heading}`}>{currentQuestion?.question}</h2>
 
-            {currentQuestion?.type === "MCQ" ? (
+            {isMcqQuestion ? (
               <div className="mt-5 space-y-3">
                 {questionOptions.map((option, index) => {
                   const value = option.value ?? "";
@@ -243,16 +257,16 @@ export default function StudyHubTopicPage() {
               </div>
             )}
 
-            {currentQuestion?.type === "MCQ" && selectedAnswer !== null && (
+            {isMcqQuestion && selectedAnswer !== null && (
               <div className="mt-5 space-y-3">
                 <div className={`rounded-xl border p-3 ${explanationBg}`}>
                   <p className={`text-xs font-semibold uppercase tracking-wide ${muted}`}>
-                    {selectedAnswer === currentQuestion.correct_option ? "Correct" : "Incorrect"}
+                    {selectedAnswer === correctIndex ? "Correct" : "Incorrect"}
                   </p>
                   <p className={`mt-2 text-sm leading-relaxed ${heading}`}>
-                    {selectedAnswer === currentQuestion.correct_option
+                    {selectedAnswer === correctIndex
                       ? "Great job! That is the correct answer."
-                      : `The correct answer is ${optionLabels[currentQuestion.correct_option ?? 0]}.`}
+                      : `The correct answer is ${optionLabels[correctIndex ?? 0]}.`}
                   </p>
                 </div>
 

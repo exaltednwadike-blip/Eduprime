@@ -1,10 +1,10 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { ToastProvider } from "@/components/ToastContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Monitor, Users, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, X, Sun, Moon, BookMarked } from "lucide-react";
+import { Home, BookOpen, Monitor, Users, BarChart2, Bell as BellIcon, Settings as SettingsIcon, User, ShieldAlert, Menu, X, Sun, Moon, BookMarked, Trophy } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { setOffline, updatePresence } from "@/lib/presence";
 
@@ -25,7 +25,7 @@ const sidebarItems = [
   { key: "cbt", label: "CBT Simulator", href: "/dashboard/cbt", icon: Monitor },
   { key: "flashcards", label: "Flashcards", href: "/dashboard/flashcards", icon: BookMarked },
   { key: "people", label: "People", href: "/dashboard/people", icon: Users },
-  { key: "community", label: "Community", href: "/dashboard/community", icon: Users },
+  { key: "leaderboard", label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy },
   { key: "progress", label: "Progress", href: "/dashboard/progress", icon: BarChart2 },
   { key: "notifications", label: "Notifications", href: "/dashboard/notifications", icon: BellIcon },
   { key: "settings", label: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
@@ -152,7 +152,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       "/dashboard/cbt": "CBT Simulator",
       "/dashboard/flashcards": "Flashcards",
       "/dashboard/people": "People",
-      "/dashboard/community": "Community",
+      "/dashboard/leaderboard": "Leaderboard",
       "/dashboard/progress": "Progress",
       "/dashboard/notifications": "Notifications",
       "/dashboard/settings": "Settings",

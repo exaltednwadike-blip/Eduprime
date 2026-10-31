@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -54,7 +54,7 @@ export default function SigninPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://eduprime.com.ng/dashboard",
+        redirectTo: `${window.location.origin}/dashboard`,
       },
     });
     if (error) {

@@ -38,18 +38,34 @@ export default function FlashcardsPage() {
       const subjectList = (subjectsData || []) as SubjectWithCount[];
 
       if (subjectList.length > 0) {
-        const { data: counts } = await supabase
-          .from("flashcards")
-          .select("subject_id")
-          .in(
-            "subject_id",
-            subjectList.map((subject) => subject.id)
-          );
+        const [catRes, topicRes] = await Promise.all([
+          supabase.from("categories").select("id, subject_id"),
+          supabase.from("topics").select("id, category_id"),
+        ]);
+
+        const categorySubject = new Map<string, string>();
+        for (const c of catRes.data || []) categorySubject.set(c.id as string, c.subject_id as string);
+
+        const topicSubject = new Map<string, string>();
+        for (const tp of topicRes.data || []) {
+          const sid = categorySubject.get(tp.category_id as string);
+          if (sid) topicSubject.set(tp.id as string, sid);
+        }
 
         const countMap = new Map<string, number>();
-        for (const item of counts || []) {
-          const subjectId = item.subject_id as string;
-          countMap.set(subjectId, (countMap.get(subjectId) || 0) + 1);
+        const pageSize = 1000;
+        for (let from = 0; ; from += pageSize) {
+          const { data: rows, error } = await supabase
+            .from("questions")
+            .select("topic_id")
+            .order("id")
+            .range(from, from + pageSize - 1);
+          if (error || !rows || rows.length === 0) break;
+          for (const row of rows) {
+            const sid = topicSubject.get(row.topic_id as string);
+            if (sid) countMap.set(sid, (countMap.get(sid) || 0) + 1);
+          }
+          if (rows.length < pageSize) break;
         }
 
         for (const subject of subjectList) {
