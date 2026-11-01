@@ -1,14 +1,26 @@
-﻿"use client";
+"use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Subject = { id: string; name: string };
 type Category = { id: string; subject_id: string; name: string };
 type Topic = { id: string; category_id: string; name: string };
+
+const field =
+  "w-full rounded-[10px] border border-line bg-canvas px-3.5 py-2.5 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary";
+const labelClass = "block text-sm font-medium text-fg";
+const primaryButton =
+  "inline-flex items-center justify-center gap-1.5 rounded-[10px] bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50";
+const secondaryButton =
+  "inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-raised disabled:cursor-not-allowed disabled:opacity-50";
+const smallSecondary =
+  "inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg transition hover:bg-raised";
+const smallDanger =
+  "inline-flex items-center gap-1.5 rounded-lg border border-danger px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger-soft";
 
 export default function AdminTopicsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -21,29 +33,6 @@ export default function AdminTopicsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
-
-  useEffect(() => {
-    const checkAdminAndLoad = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setAuthChecked(true); return; }
-
-      const { data: adminData } = await supabase
-        .from("admins")
-        .select("email")
-        .eq("email", user.email)
-        .single();
-
-      setIsAdmin(!!adminData);
-      setAuthChecked(true);
-
-      if (adminData) {
-        await fetchAll();
-      }
-    };
-    checkAdminAndLoad();
-  }, []);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -59,13 +48,16 @@ export default function AdminTopicsPage() {
       if (categoryRes.error) throw new Error(categoryRes.error.message);
       if (topicRes.error) throw new Error(topicRes.error.message);
 
-      setSubjects(subjectRes.data ?? []);
-      setCategories(categoryRes.data ?? []);
-      setTopics(topicRes.data ?? []);
+      const subjectsData = (subjectRes.data ?? []) as Subject[];
+      const categoriesData = (categoryRes.data ?? []) as Category[];
 
-      if (subjectRes.data?.[0]) {
-        setSelectedSubjectId(subjectRes.data[0].id);
-        const firstCategory = categoryRes.data?.find(c => c.subject_id === subjectRes.data![0].id);
+      setSubjects(subjectsData);
+      setCategories(categoriesData);
+      setTopics((topicRes.data ?? []) as Topic[]);
+
+      if (subjectsData[0]) {
+        setSelectedSubjectId(subjectsData[0].id);
+        const firstCategory = categoriesData.find((c) => c.subject_id === subjectsData[0].id);
         if (firstCategory) setSelectedCategoryId(firstCategory.id);
       }
     } catch (err: any) {
@@ -76,37 +68,56 @@ export default function AdminTopicsPage() {
   };
 
   const fetchTopics = async () => {
-    const { data, error } = await supabase.from("topics").select("id, category_id, name").order("name");
-    if (error) { setError(error.message); return; }
-    setTopics(data ?? []);
+    const { data, error: queryError } = await supabase.from("topics").select("id, category_id, name").order("name");
+    if (queryError) {
+      setError(queryError.message);
+      return;
+    }
+    setTopics((data ?? []) as Topic[]);
+  };
+
+  useEffect(() => {
+    void fetchAll();
+  }, []);
+
+  const resetForm = () => {
+    setEditing(null);
+    setName("");
   };
 
   const handleSubjectChange = (subjectId: string) => {
     setSelectedSubjectId(subjectId);
-    setSelectedCategoryId("");
-    const firstCategory = categories.find(c => c.subject_id === subjectId);
-    if (firstCategory) setSelectedCategoryId(firstCategory.id);
+    const firstCategory = categories.find((c) => c.subject_id === subjectId);
+    setSelectedCategoryId(firstCategory ? firstCategory.id : "");
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!selectedCategoryId) { setError("Please select a category."); return; }
-    if (!name.trim()) { setError("Topic name is required."); return; }
+    if (!selectedCategoryId) {
+      setError("Please select a category.");
+      return;
+    }
+    if (!name.trim()) {
+      setError("Topic name is required.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
 
-    if (editing) {
-      const { error } = await supabase.from("topics").update({ name, category_id: selectedCategoryId }).eq("id", editing.id);
-      if (error) { setError(error.message); setSaving(false); return; }
-    } else {
-      const { error } = await supabase.from("topics").insert({ name, category_id: selectedCategoryId });
-      if (error) { setError(error.message); setSaving(false); return; }
+    const payload = { name: name.trim(), category_id: selectedCategoryId };
+    const result = editing
+      ? await supabase.from("topics").update(payload).eq("id", editing.id)
+      : await supabase.from("topics").insert(payload);
+
+    setSaving(false);
+
+    if (result.error) {
+      setError(result.error.message);
+      return;
     }
 
-    setName("");
-    setEditing(null);
-    setSaving(false);
+    resetForm();
     await fetchTopics();
   };
 
@@ -114,120 +125,89 @@ export default function AdminTopicsPage() {
     setEditing(topic);
     setName(topic.name);
     setSelectedCategoryId(topic.category_id);
-    const category = categories.find(c => c.id === topic.category_id);
+    const category = categories.find((c) => c.id === topic.category_id);
     if (category) setSelectedSubjectId(category.subject_id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (topic: Topic) => {
-    if (!window.confirm(`Delete topic "${topic.name}"? This will also delete all questions under it.`)) return;
-    setLoading(true);
-    const { error } = await supabase.from("topics").delete().eq("id", topic.id);
-    if (error) setError(error.message);
-    else await fetchTopics();
-    setLoading(false);
+    if (!window.confirm(`Delete topic "${topic.name}"? Questions under it may be deleted too. This cannot be undone.`)) return;
+    setError(null);
+    const { error: deleteError } = await supabase.from("topics").delete().eq("id", topic.id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+    if (editing?.id === topic.id) resetForm();
+    await fetchTopics();
   };
 
-  const filteredCategories = categories.filter(c => c.subject_id === selectedSubjectId);
-  const filteredTopics = topics.filter(t => t.category_id === selectedCategoryId);
-
-  if (!authChecked) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a1f0f]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2db54a] border-t-transparent" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a1f0f]">
-        <div className="text-center">
-          <p className="text-xl font-semibold text-white">Access Denied</p>
-          <p className="mt-2 text-gray-400">You do not have admin privileges.</p>
-        </div>
-      </div>
-    );
-  }
+  const filteredCategories = categories.filter((c) => c.subject_id === selectedSubjectId);
+  const filteredTopics = topics.filter((t) => t.category_id === selectedCategoryId);
+  const selectedCategoryName = categories.find((c) => c.id === selectedCategoryId)?.name;
 
   return (
-    <div className="space-y-6 p-6">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Topics</h1>
-          <p className="mt-1 text-sm text-gray-400">Create and manage topics under categories.</p>
-        </div>
-        <button
-          onClick={() => { setEditing(null); setName(""); }}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#2db54a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1a5c2a] transition"
-        >
-          <Plus size={16} /> New Topic
-        </button>
+    <div className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-6">
+      <div>
+        <h1 className="text-xl font-semibold text-fg sm:text-2xl">Topics</h1>
+        <p className="mt-1 text-sm text-muted">Create and manage topics under categories.</p>
       </div>
 
-      {/* Form */}
-      <div className="rounded-xl bg-[#0f2914] border border-white/10 p-6">
-        <h2 className="mb-4 text-lg font-semibold text-white">
-          {editing ? "Edit Topic" : "Add New Topic"}
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Subject</label>
-              <select
-                value={selectedSubjectId}
-                onChange={(e) => handleSubjectChange(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-2 text-white focus:border-[#2db54a] focus:outline-none"
-              >
-                <option value="">Select subject</option>
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
+      {error && <div className="rounded-xl border border-danger bg-danger-soft px-4 py-3 text-sm text-fg">{error}</div>}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Category</label>
-              <select
-                value={selectedCategoryId}
-                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-2 text-white focus:border-[#2db54a] focus:outline-none"
-              >
-                <option value="">Select category</option>
-                {filteredCategories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+      <div className="rounded-2xl border border-line bg-surface p-4 sm:p-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={labelClass}>
+            Subject
+            <select
+              value={selectedSubjectId}
+              onChange={(e) => handleSubjectChange(e.target.value)}
+              className={`mt-1.5 ${field}`}
+            >
+              <option value="">Select subject</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Topic Name</label>
+          <label className={labelClass}>
+            Category
+            <select
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              className={`mt-1.5 ${field}`}
+            >
+              <option value="">Select category</option>
+              {filteredCategories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4 border-t border-line pt-5">
+          <p className="text-sm font-semibold text-fg">{editing ? "Edit topic" : "Add a topic"}</p>
+          <label className={labelClass}>
+            Topic name
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Trigeminal Nerve"
-              className="w-full rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[#2db54a] focus:outline-none"
+              placeholder="e.g. Trigeminal nerve"
+              className={`mt-1.5 ${field}`}
             />
-          </div>
+          </label>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
-
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-lg bg-[#2db54a] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1a5c2a] transition disabled:opacity-60"
-            >
-              {saving ? "Saving..." : editing ? "Save Changes" : "Add Topic"}
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="submit" disabled={saving} className={primaryButton}>
+              {saving ? "Saving..." : editing ? "Save changes" : "Add topic"}
             </button>
             {editing && (
-              <button
-                type="button"
-                onClick={() => { setEditing(null); setName(""); }}
-                className="rounded-lg border border-white/20 px-5 py-2 text-sm font-semibold text-gray-300 hover:bg-white/10 transition"
-              >
+              <button type="button" onClick={resetForm} className={secondaryButton}>
                 Cancel
               </button>
             )}
@@ -235,77 +215,38 @@ export default function AdminTopicsPage() {
         </form>
       </div>
 
-      {/* Topics List */}
-      <div className="rounded-xl bg-[#0f2914] border border-white/10 overflow-hidden">
-        <div className="border-b border-white/10 px-6 py-4">
-          <div className="flex flex-wrap gap-3">
-            <select
-              value={selectedSubjectId}
-              onChange={(e) => handleSubjectChange(e.target.value)}
-              className="rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-1.5 text-sm text-white focus:outline-none"
-            >
-              <option value="">All Subjects</option>
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-            <select
-              value={selectedCategoryId}
-              onChange={(e) => setSelectedCategoryId(e.target.value)}
-              className="rounded-lg border border-white/10 bg-[#0a1f0f] px-3 py-1.5 text-sm text-white focus:outline-none"
-            >
-              <option value="">All Categories</option>
-              {filteredCategories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
+      <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+        <div className="border-b border-line px-4 py-3">
+          <p className="text-sm font-semibold text-fg">
+            {selectedCategoryName ? `Topics in ${selectedCategoryName}` : "Topics"}{" "}
+            <span className="font-normal text-muted">({filteredTopics.length})</span>
+          </p>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-gray-400">Loading topics...</div>
+          <div className="animate-pulse space-y-px">
+            <div className="h-14 bg-raised" />
+            <div className="h-14 bg-raised" />
+            <div className="h-14 bg-raised" />
+          </div>
         ) : filteredTopics.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">No topics found. Add one above.</div>
+          <p className="p-6 text-center text-sm text-muted">No topics found for this category. Add one above.</p>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/10 text-left text-xs font-medium uppercase tracking-wide text-gray-400">
-                <th className="px-6 py-3">Topic Name</th>
-                <th className="px-6 py-3">Category</th>
-                <th className="px-6 py-3">Subject</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredTopics.map((topic) => {
-                const category = categories.find(c => c.id === topic.category_id);
-                const subject = subjects.find(s => s.id === category?.subject_id);
-                return (
-                  <tr key={topic.id} className="hover:bg-white/5 transition">
-                    <td className="px-6 py-4 text-sm font-medium text-white">{topic.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-400">{category?.name || "—"}</td>
-                    <td className="px-6 py-4 text-sm text-gray-400">{subject?.name || "—"}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(topic)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/10 transition"
-                        >
-                          <Pencil size={12} /> Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(topic)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10 transition"
-                        >
-                          <Trash2 size={12} /> Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <ul className="divide-y divide-line">
+            {filteredTopics.map((topic) => (
+              <li key={topic.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="min-w-0 flex-1 text-sm font-medium text-fg">{topic.name}</p>
+                <div className="flex flex-shrink-0 gap-2">
+                  <button type="button" onClick={() => handleEdit(topic)} className={smallSecondary}>
+                    <Pencil size={14} /> Edit
+                  </button>
+                  <button type="button" onClick={() => handleDelete(topic)} className={smallDanger}>
+                    <Trash2 size={14} /> Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>

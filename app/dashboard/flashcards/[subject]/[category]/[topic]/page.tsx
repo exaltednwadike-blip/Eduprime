@@ -17,40 +17,6 @@ type Flashcard = {
   topic_id: string;
 };
 
-type QuestionRow = {
-  id: string;
-  topic_id: string;
-  question: string;
-  answer: string | null;
-  explanation: string | null;
-  type: string | null;
-  option_a: string | null;
-  option_b: string | null;
-  option_c: string | null;
-  option_d: string | null;
-  correct_option: number | string | null;
-};
-
-const getCorrectIndex = (value: number | string | null): number | null => {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "number") return value;
-  const v = value.trim().toUpperCase();
-  const letters = ["A", "B", "C", "D"];
-  if (letters.includes(v)) return letters.indexOf(v);
-  const n = Number(v);
-  return Number.isNaN(n) ? null : n;
-};
-
-const toFlashcard = (q: QuestionRow): Flashcard => {
-  const options = [q.option_a, q.option_b, q.option_c, q.option_d];
-  const idx = getCorrectIndex(q.correct_option);
-  const isMcqRow = q.type?.trim().toLowerCase() === "mcq";
-  let back = q.answer?.trim() || "";
-  if (isMcqRow && idx !== null && options[idx]) {
-    back = `${["A", "B", "C", "D"][idx]}. ${options[idx]}`;
-  }
-  return { id: q.id, front: q.question, back, explanation: q.explanation, topic_id: q.topic_id };
-};
 export default function FlashcardsTopicPage() {
   const router = useRouter();
   const params = useParams();
@@ -95,7 +61,7 @@ export default function FlashcardsTopicPage() {
         supabase.from("subjects").select("id, name").eq("id", subjectId).single(),
         supabase.from("categories").select("id, subject_id, name").eq("id", categoryId).single(),
         supabase.from("topics").select("id, category_id, name").eq("id", topicId).single(),
-        supabase.from("questions").select("id, topic_id, question, answer, explanation, type, option_a, option_b, option_c, option_d, correct_option").eq("topic_id", topicId).order("created_at"),
+        supabase.from("flashcards").select("id, front, back, explanation, topic_id").eq("topic_id", topicId).order("created_at"),
       ]);
 
       if (!active) return;
@@ -103,7 +69,7 @@ export default function FlashcardsTopicPage() {
       setSubject((subjectRes.data as Subject | null) ?? null);
       setCategory((categoryRes.data as Category | null) ?? null);
       setTopic((topicRes.data as Topic | null) ?? null);
-      setCards(((cardsRes.data as QuestionRow[]) || []).map(toFlashcard));
+      setCards((cardsRes.data as Flashcard[]) || []);
       setLoading(false);
     };
 

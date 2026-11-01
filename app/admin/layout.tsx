@@ -76,8 +76,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (status === "checking") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#052e16] text-white">
-        <div className="rounded-3xl border border-white/10 bg-[#064e23] px-8 py-6 text-center text-lg font-semibold">
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-6 py-4 text-sm text-muted">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           Checking admin access...
         </div>
       </div>

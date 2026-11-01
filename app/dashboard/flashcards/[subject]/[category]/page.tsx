@@ -57,7 +57,7 @@ export default function FlashcardsCategoryPage() {
       if (topicList.length > 0) {
         const topicIds = topicList.map((topic) => topic.id);
         const { data: counts } = await supabase
-          .from("questions")
+          .from("flashcards")
           .select("topic_id")
           .in("topic_id", topicIds);
 

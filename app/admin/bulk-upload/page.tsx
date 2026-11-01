@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -117,6 +117,14 @@ const parsePayload = (records: Array<Record<string, string | null>>, topicId: st
     };
   });
 };
+
+const field =
+  "w-full rounded-[10px] border border-line bg-canvas px-3 py-2.5 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50";
+const labelClass = "mb-1.5 block text-xs font-medium text-muted";
+const primaryButton =
+  "inline-flex items-center justify-center gap-2 rounded-[10px] bg-primary px-5 py-2.5 text-sm font-medium text-on-primary transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryButton =
+  "inline-flex items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-raised";
 
 export default function AdminBulkUploadPage() {
   const [csvText, setCsvText] = useState("");
@@ -260,38 +268,28 @@ export default function AdminBulkUploadPage() {
   const filteredTopics = topics.filter(t => t.category_id === selectedCategoryId);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      {/* Header */}
-      <div className="rounded-xl border border-white/10 bg-[#064e23] p-4 sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-white sm:text-2xl">Bulk Upload Questions</h1>
-            <p className="mt-1 text-sm text-slate-400">Select a topic first, then upload questions.</p>
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-lg bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white">
-            <UploadCloud size={16} /> CSV Upload
-          </div>
-        </div>
+    <div className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-6">
+      <div>
+        <h1 className="text-xl font-semibold text-fg sm:text-2xl">Bulk upload questions</h1>
+        <p className="mt-1 text-sm text-muted">Choose a topic first, then upload a CSV of questions.</p>
       </div>
 
-      {/* Selection */}
-      <div className="rounded-xl bg-[#064e23] p-4 sm:p-6">
+      <div className="rounded-2xl border border-line bg-surface p-4 sm:p-6">
         {lookupLoading ? (
-          <p className="text-sm text-slate-300">Loading...</p>
+          <div className="grid animate-pulse gap-4 sm:grid-cols-3">
+            <div className="h-10 rounded-[10px] bg-raised" />
+            <div className="h-10 rounded-[10px] bg-raised" />
+            <div className="h-10 rounded-[10px] bg-raised" />
+          </div>
         ) : lookupError ? (
-          <p className="text-sm text-red-400">{lookupError}</p>
+          <p className="text-sm text-danger">{lookupError}</p>
         ) : subjects.length === 0 ? (
-          <p className="text-sm text-slate-300">Please add subjects, categories and topics first.</p>
+          <p className="text-sm text-muted">Please add subjects, categories and topics first.</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-3">
-            {/* Subject */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Select Subject</label>
-              <select
-                value={selectedSubjectId}
-                onChange={(e) => handleSubjectChange(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white focus:border-[#16a34a] focus:outline-none"
-              >
+              <label className={labelClass}>Subject</label>
+              <select value={selectedSubjectId} onChange={(e) => handleSubjectChange(e.target.value)} className={field}>
                 <option value="">Select subject</option>
                 {subjects.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -299,14 +297,13 @@ export default function AdminBulkUploadPage() {
               </select>
             </div>
 
-            {/* Category */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Select Category</label>
+              <label className={labelClass}>Category</label>
               <select
                 value={selectedCategoryId}
                 onChange={(e) => handleCategoryChange(e.target.value)}
                 disabled={!selectedSubjectId}
-                className="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white focus:border-[#16a34a] focus:outline-none disabled:opacity-50"
+                className={field}
               >
                 <option value="">Select category</option>
                 {filteredCategories.map((c) => (
@@ -315,14 +312,13 @@ export default function AdminBulkUploadPage() {
               </select>
             </div>
 
-            {/* Topic */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Select Topic</label>
+              <label className={labelClass}>Topic</label>
               <select
                 value={selectedTopicId}
                 onChange={(e) => setSelectedTopicId(e.target.value)}
                 disabled={!selectedCategoryId}
-                className="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white focus:border-[#16a34a] focus:outline-none disabled:opacity-50"
+                className={field}
               >
                 <option value="">Select topic</option>
                 {filteredTopics.map((t) => (
@@ -334,82 +330,75 @@ export default function AdminBulkUploadPage() {
         )}
       </div>
 
-      {/* Upload section - only show when topic selected */}
       {selectedTopicId && (
-        <div className="rounded-xl bg-[#064e23] p-4 sm:p-6 space-y-4">
-          {/* Template info */}
-          <div className="rounded-lg bg-slate-900/50 p-4">
-            <p className="text-xs font-medium text-slate-400 mb-2">Expected CSV format:</p>
-            <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="space-y-4 rounded-2xl border border-line bg-surface p-4 sm:p-6">
+          <div className="rounded-xl bg-raised p-4">
+            <p className="mb-2 text-xs font-medium text-muted">Expected CSV columns</p>
+            <div className="flex flex-wrap gap-1.5">
               {TEMPLATE_HEADERS.map((h) => (
-                <span key={h} className="rounded-md bg-white/5 px-2 py-0.5 text-xs text-slate-300">{h}</span>
+                <span key={h} className="rounded-md border border-line bg-surface px-2 py-0.5 text-xs text-fg">{h}</span>
               ))}
             </div>
-            <p className="text-xs text-slate-400">correct_option: A/B/C/D or 0/1/2/3 — type: MCQ or Theory</p>
+            <p className="mt-3 text-xs text-muted">
+              correct_option: A/B/C/D or 0/1/2/3. type: MCQ or Theory. Put quotes around any cell that contains a comma.
+            </p>
           </div>
 
-          {/* Action buttons */}
           <div className="flex flex-wrap gap-3">
-            <button
-              onClick={handleDownloadTemplate}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10 transition"
-            >
-              <Download size={14} /> Download Template
+            <button onClick={handleDownloadTemplate} className={secondaryButton}>
+              <Download size={14} /> Download template
             </button>
             <button
               onClick={() => setCsvText(TEMPLATE_HEADERS.join(",") + "\nWhat is 2+2?,MCQ,4,Understanding the basics,2,3,4,5,A,2025")}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10 transition"
+              className={secondaryButton}
             >
-              Fill Example
+              Fill example
             </button>
-            <button
-              onClick={handleParse}
-              className="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm text-white hover:bg-slate-600 transition"
-            >
-              Preview Rows
+            <button onClick={handleParse} className={secondaryButton}>
+              Preview rows
             </button>
           </div>
 
-          {/* File upload */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Upload CSV File</label>
+            <label className={labelClass}>Upload CSV file</label>
             <input
               type="file"
               accept=".csv,text/csv"
               onChange={handleFileChange}
-              className="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white file:rounded-lg file:border-0 file:bg-[#16a34a] file:px-3 file:py-1 file:text-xs file:text-white file:font-semibold file:mr-3"
+              className={`${field} file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:font-medium file:text-on-primary`}
             />
-            {fileName && <p className="mt-1 text-xs text-slate-400">Loaded: {fileName}</p>}
+            {fileName && <p className="mt-1 text-xs text-muted">Loaded: {fileName}</p>}
           </div>
 
-          {/* Paste area */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Or paste CSV here</label>
+            <label className={labelClass}>Or paste CSV here</label>
             <textarea
               value={csvText}
               onChange={(e) => setCsvText(e.target.value)}
               placeholder="Paste CSV rows here..."
-              className="min-h-[200px] w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[#16a34a] focus:outline-none"
+              className={`${field} min-h-[200px]`}
             />
           </div>
 
-          {/* Messages */}
-          {message && <p className="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{message}</p>}
-          {error && <p className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p>}
+          {message && (
+            <p className="rounded-xl border border-primary bg-primary-soft px-4 py-3 text-sm text-fg">{message}</p>
+          )}
+          {error && (
+            <p className="rounded-xl border border-danger bg-danger-soft px-4 py-3 text-sm text-fg">{error}</p>
+          )}
 
-          {/* Preview */}
           {previewRecords.length > 0 && (
-            <div className="rounded-lg border border-white/10 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                <h3 className="text-sm font-semibold text-white">Preview — {previewRecords.length} row(s)</h3>
-                <button onClick={() => setPreviewRecords([])} className="text-xs text-slate-400 hover:text-white">Clear</button>
+            <div className="overflow-hidden rounded-xl border border-line">
+              <div className="flex items-center justify-between border-b border-line px-4 py-3">
+                <h3 className="text-sm font-semibold text-fg">Preview: {previewRecords.length} row(s)</h3>
+                <button onClick={() => setPreviewRecords([])} className="text-xs text-muted hover:text-fg">Clear</button>
               </div>
-              <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
+              <div className="max-h-64 divide-y divide-line overflow-y-auto">
                 {previewRecords.map((record, index) => (
                   <div key={index} className="px-4 py-3 text-sm">
-                    <p className="font-medium text-white truncate">{record.question}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {record.type?.toUpperCase()} — Answer: {record.answer} — Year: {record.year ?? "N/A"}
+                    <p className="truncate font-medium text-fg">{record.question}</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      {record.type?.toUpperCase()} | Answer: {record.answer} | Year: {record.year ?? "N/A"}
                     </p>
                   </div>
                 ))}
@@ -417,14 +406,9 @@ export default function AdminBulkUploadPage() {
             </div>
           )}
 
-          {/* Upload button */}
-          <button
-            onClick={handleUpload}
-            disabled={loading || !csvText.trim()}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#16a34a] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#22c55e] transition disabled:opacity-60 disabled:cursor-not-allowed"
-          >
+          <button onClick={handleUpload} disabled={loading || !csvText.trim()} className={primaryButton}>
             <UploadCloud size={16} />
-            {loading ? "Uploading..." : "Upload Questions"}
+            {loading ? "Uploading..." : "Upload questions"}
           </button>
         </div>
       )}

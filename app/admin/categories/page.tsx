@@ -1,21 +1,25 @@
-﻿"use client";
+"use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-type Subject = {
-  id: string;
-  name: string;
-};
+type Subject = { id: string; name: string };
+type Category = { id: string; subject_id: string; name: string };
 
-type Category = {
-  id: string;
-  subject_id: string;
-  name: string;
-};
+const field =
+  "w-full rounded-[10px] border border-line bg-canvas px-3.5 py-2.5 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary";
+const labelClass = "block text-sm font-medium text-fg";
+const primaryButton =
+  "inline-flex items-center justify-center gap-1.5 rounded-[10px] bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50";
+const secondaryButton =
+  "inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg transition hover:bg-raised disabled:cursor-not-allowed disabled:opacity-50";
+const smallSecondary =
+  "inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg transition hover:bg-raised";
+const smallDanger =
+  "inline-flex items-center gap-1.5 rounded-lg border border-danger px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger-soft";
 
 export default function AdminCategoriesPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -24,17 +28,8 @@ export default function AdminCategoriesPage() {
   const [name, setName] = useState("");
   const [editing, setEditing] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchLookupData();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedSubjectId && subjects.length > 0) {
-      setSelectedSubjectId(subjects[0].id);
-    }
-  }, [subjects, selectedSubjectId]);
 
   const fetchLookupData = async () => {
     setLoading(true);
@@ -49,8 +44,8 @@ export default function AdminCategoriesPage() {
       if (subjectRes.error) throw new Error(subjectRes.error.message);
       if (categoryRes.error) throw new Error(categoryRes.error.message);
 
-      const subjectsData = subjectRes.data ?? [];
-      const categoriesData = categoryRes.data ?? [];
+      const subjectsData = (subjectRes.data ?? []) as Subject[];
+      const categoriesData = (categoryRes.data ?? []) as Category[];
 
       setSubjects(subjectsData);
       setCategories(categoriesData);
@@ -63,18 +58,24 @@ export default function AdminCategoriesPage() {
   };
 
   const fetchCategories = async () => {
-    setLoading(true);
-    setError(null);
-
-    const { data, error } = await supabase.from("categories").select("id, subject_id, name").order("name", { ascending: true });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
+    const { data, error: queryError } = await supabase
+      .from("categories")
+      .select("id, subject_id, name")
+      .order("name", { ascending: true });
+    if (queryError) {
+      setError(queryError.message);
       return;
     }
+    setCategories((data ?? []) as Category[]);
+  };
 
-    setCategories(data ?? []);
-    setLoading(false);
+  useEffect(() => {
+    void fetchLookupData();
+  }, []);
+
+  const resetForm = () => {
+    setEditing(null);
+    setName("");
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -88,23 +89,22 @@ export default function AdminCategoriesPage() {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     setError(null);
 
-    if (editing) {
-      const { error } = await supabase.from("categories").update({ name, subject_id: selectedSubjectId }).eq("id", editing.id);
-      if (error) {
-        setError(error.message);
-      }
-    } else {
-      const { error } = await supabase.from("categories").insert({ name, subject_id: selectedSubjectId });
-      if (error) {
-        setError(error.message);
-      }
+    const payload = { name: name.trim(), subject_id: selectedSubjectId };
+    const result = editing
+      ? await supabase.from("categories").update(payload).eq("id", editing.id)
+      : await supabase.from("categories").insert(payload);
+
+    setSaving(false);
+
+    if (result.error) {
+      setError(result.error.message);
+      return;
     }
 
-    setName("");
-    setEditing(null);
+    resetForm();
     await fetchCategories();
   };
 
@@ -112,89 +112,102 @@ export default function AdminCategoriesPage() {
     setEditing(category);
     setName(category.name);
     setSelectedSubjectId(category.subject_id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (category: Category) => {
-    if (!window.confirm(`Delete category ${category.name}?`)) return;
-    setLoading(true);
-    const { error } = await supabase.from("categories").delete().eq("id", category.id);
-    if (error) {
-      setError(error.message);
-    } else {
-      await fetchCategories();
+    if (!window.confirm(`Delete category "${category.name}"? This cannot be undone.`)) return;
+    setError(null);
+    const { error: deleteError } = await supabase.from("categories").delete().eq("id", category.id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
     }
-    setLoading(false);
+    if (editing?.id === category.id) resetForm();
+    await fetchCategories();
   };
 
   const filteredCategories = categories.filter((category) => category.subject_id === selectedSubjectId);
+  const selectedSubjectName = subjects.find((subject) => subject.id === selectedSubjectId)?.name;
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-[#064e23] p-6 sm:p-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold text-white">Categories</h1>
-            <p className="mt-2 text-slate-400">Organize categories under subjects for your course hierarchy.</p>
-          </div>
-          <button onClick={() => setEditing(null)} className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 font-semibold text-[#052e16]">
-            <Plus size={16} /> New Category
-          </button>
-        </div>
+    <div className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-6">
+      <div>
+        <h1 className="text-xl font-semibold text-fg sm:text-2xl">Categories</h1>
+        <p className="mt-1 text-sm text-muted">Organise categories under subjects in your course hierarchy.</p>
       </div>
 
-      <div className="rounded-3xl bg-[#064e23] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
-        <form onSubmit={handleSubmit} className="grid gap-4 lg:grid-cols-3">
-          <label className="space-y-2 text-sm text-slate-200">
+      {error && <div className="rounded-xl border border-danger bg-danger-soft px-4 py-3 text-sm text-fg">{error}</div>}
+
+      <div className="rounded-2xl border border-line bg-surface p-4 sm:p-6">
+        <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-3">
+          <p className="text-sm font-semibold text-fg sm:col-span-3">{editing ? "Edit category" : "Add a category"}</p>
+          <label className={labelClass}>
             Subject
-            <select value={selectedSubjectId} onChange={(event) => setSelectedSubjectId(event.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white">
+            <select
+              value={selectedSubjectId}
+              onChange={(e) => setSelectedSubjectId(e.target.value)}
+              className={`mt-1.5 ${field}`}
+            >
               <option value="">Select subject</option>
               {subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>{subject.name}</option>
+                <option key={subject.id} value={subject.id}>
+                  {subject.name}
+                </option>
               ))}
             </select>
           </label>
 
-          <label className="space-y-2 text-sm text-slate-200 lg:col-span-2">
-            Category Name
-            <input value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white" />
+          <label className={`${labelClass} sm:col-span-2`}>
+            Category name
+            <input value={name} onChange={(e) => setName(e.target.value)} className={`mt-1.5 ${field}`} />
           </label>
 
-          <div className="lg:col-span-3 flex flex-wrap items-center gap-3">
-            <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-5 py-3 font-semibold text-[#052e16]">
-              {editing ? "Save Category" : "Add Category"}
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-3">
+            <button type="submit" disabled={saving} className={primaryButton}>
+              {saving ? "Saving..." : editing ? "Save category" : "Add category"}
             </button>
             {editing && (
-              <button type="button" onClick={() => { setEditing(null); setName(""); }} className="inline-flex items-center gap-2 rounded-full bg-white/5 px-5 py-3 text-slate-200">
+              <button type="button" onClick={resetForm} className={secondaryButton}>
                 Cancel
               </button>
             )}
-            {error && <div className="text-rose-300">{error}</div>}
-            {loading && <div className="text-slate-300">Saving...</div>}
           </div>
         </form>
       </div>
 
-      <div className="grid gap-4">
-        {filteredCategories.map((category) => (
-          <div key={category.id} className="rounded-3xl bg-[#065f2c] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-white">{category.name}</h2>
-                <p className="mt-2 text-slate-400">Subject: {subjects.find((subject: any) => subject.id === category.subject_id)?.name ?? "Unknown"}</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button onClick={() => handleEdit(category)} className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10">
-                  <Pencil size={16} /> Edit
-                </button>
-                <button onClick={() => handleDelete(category)} className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-300 hover:bg-rose-500/20">
-                  <Trash2 size={16} /> Delete
-                </button>
-              </div>
-            </div>
+      <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+        <div className="border-b border-line px-4 py-3">
+          <p className="text-sm font-semibold text-fg">
+            {selectedSubjectName ? `Categories in ${selectedSubjectName}` : "Categories"}{" "}
+            <span className="font-normal text-muted">({filteredCategories.length})</span>
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="animate-pulse space-y-px">
+            <div className="h-14 bg-raised" />
+            <div className="h-14 bg-raised" />
+            <div className="h-14 bg-raised" />
           </div>
-        ))}
-        {filteredCategories.length === 0 && (
-          <div className="rounded-3xl bg-[#065f2c] p-6 text-slate-400">No categories available for the selected subject.</div>
+        ) : filteredCategories.length === 0 ? (
+          <p className="p-6 text-center text-sm text-muted">No categories available for the selected subject.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {filteredCategories.map((category) => (
+              <li key={category.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="min-w-0 flex-1 text-sm font-medium text-fg">{category.name}</p>
+                <div className="flex flex-shrink-0 gap-2">
+                  <button type="button" onClick={() => handleEdit(category)} className={smallSecondary}>
+                    <Pencil size={14} /> Edit
+                  </button>
+                  <button type="button" onClick={() => handleDelete(category)} className={smallDanger}>
+                    <Trash2 size={14} /> Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>

@@ -56,7 +56,7 @@ export default function FlashcardsPage() {
         const pageSize = 1000;
         for (let from = 0; ; from += pageSize) {
           const { data: rows, error } = await supabase
-            .from("questions")
+            .from("flashcards")
             .select("topic_id")
             .order("id")
             .range(from, from + pageSize - 1);
